@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y \
     nano \
     vim \
     supervisor \
+    sudo \
     && rm -rf /var/lib/apt/lists/*
 
 # Create Python virtual environment
@@ -35,10 +36,13 @@ COPY . /app/
 
 # Set up PostgreSQL
 RUN service postgresql start && \
+    sleep 5 && \
     sudo -u postgres psql -c "CREATE USER rdi_user WITH PASSWORD 'rdi_password';" && \
     sudo -u postgres psql -c "CREATE DATABASE rdi_db OWNER rdi_user;" && \
     sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE rdi_db TO rdi_user;" && \
-    PGPASSWORD='rdi_password' psql -U rdi_user -d rdi_db -h localhost < seed/music_database.sql
+    sleep 2 && \
+    PGPASSWORD='rdi_password' psql -U rdi_user -d rdi_db -h localhost < seed/music_database.sql && \
+    service postgresql stop
 
 # Create supervisor configuration
 RUN mkdir -p /var/log/supervisor
