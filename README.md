@@ -26,7 +26,6 @@ git clone https://github.com/Cammer15m/Redis_RDI_CTF
 cd Redis_RDI_CTF
 
 # Configure Redis connection (get free account at redis.com)
-cp .env.example .env
 # Edit .env with your Redis Cloud connection details
 
 # Start the CTF
