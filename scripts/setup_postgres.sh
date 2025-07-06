@@ -171,10 +171,24 @@ configure_postgres() {
 # Load sample data
 load_sample_data() {
     print_status "Loading music sample data..."
-    
+
+    # Wait for PostgreSQL to be ready
+    print_status "Waiting for PostgreSQL to be ready..."
+    for i in {1..30}; do
+        if psql -U rdi_user -d rdi_db -h localhost -c "SELECT 1;" >/dev/null 2>&1; then
+            print_success "✓ PostgreSQL is ready"
+            break
+        fi
+        if [ $i -eq 30 ]; then
+            print_error "✗ PostgreSQL not ready after 30 seconds"
+            return 1
+        fi
+        sleep 1
+    done
+
     local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    local sql_file="$script_dir/../seed/postgres.sql"
-    
+    local sql_file="$script_dir/../seed/music_database.sql"
+
     if [ -f "$sql_file" ]; then
         if psql -U rdi_user -d rdi_db -h localhost < "$sql_file" >/dev/null 2>&1; then
             print_success "✓ Sample music data loaded successfully"
