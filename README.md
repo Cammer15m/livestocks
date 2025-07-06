@@ -9,101 +9,121 @@ Welcome to the **Redis Data Integration (RDI) Capture The Flag** challenge! This
 - **Redis Data Structures**: Hashes, Streams, and JSON
 - **Advanced RDI Features**: Transformations and multi-table replication
 
-## 📋 Prerequisites
+## 🐳 Quick Start (Docker - Recommended)
 
-### System Requirements
-- **Operating System**: Linux, macOS, or Windows with WSL2
-- **RAM**: Minimum 4GB, Recommended 8GB+
-- **Disk Space**: ~3GB free space
-- **Docker**: Will be installed automatically if not present
-- **Python 3.7+**: With pip package manager
-- **Internet Connection**: For downloading packages and Docker images
+**The easiest and safest way to run the CTF!** Everything is containerized - no system changes required.
 
-### Software Dependencies (Auto-installed)
-**Python Packages:**
-- `redis>=4.0.0` - Redis client library
-- `psycopg2-binary>=2.9.0` - PostgreSQL adapter
-- `flask>=2.0.0` - Web framework for monitoring UI
-- `pandas>=1.3.0` - Data manipulation library
-- `sqlalchemy>=1.4.0` - Database toolkit
-- `python-dotenv>=0.19.0` - Environment variable management
-- `requests>=2.28.0` - HTTP library
+### **Prerequisites**
+- **Docker**: 20.10+ with Docker Compose
+- **RAM**: 2GB minimum, 4GB recommended
+- **Disk**: ~1GB free space
+- **Ports**: 5432, 8080, 3001 available
 
-**Docker Images (~2.5GB total):**
-- `postgres:15` (~350MB) - PostgreSQL database
-- `redis:7-alpine` (~30MB) - Redis server
-- `redis/redisinsight:latest` (~200MB) - Redis management UI
-- `sqlpad/sqlpad:6` (~150MB) - PostgreSQL query interface
-- `redis/rdi:latest` (~800MB) - Redis Data Integration platform
-
-### Knowledge Prerequisites
-- **Basic knowledge** of databases and data integration
-- **Terminal/Command line** familiarity
-- **Redis Cloud** account (free tier available) - Optional for advanced features
-
-## 🚀 Quick Start
-
-### 1. Complete Local Setup
-### **🚀 Automated Setup (Recommended)**
+### **Option 1: With Redis Cloud (Recommended)**
 ```bash
-# Clone the repository
+# Clone and start
 git clone https://github.com/Cammer15m/Redis_RDI_CTF
 cd Redis_RDI_CTF
 
-# One-command setup (installs everything automatically)
-./scripts/install_all.sh
+# Configure Redis connection (get free account at redis.com)
+cp .env.example .env
+# Edit .env with your Redis Cloud connection details
+
+# Start the CTF
+docker-compose up --build
+
+# Access the CTF
+open http://localhost:8080
 ```
 
-**This automatically installs:**
-- ✅ PostgreSQL with music database (15 tracks, 8 albums)
-- ✅ Redis RDI via Docker (http://localhost:8080)
-- ✅ Python dependencies for data generation
-- ✅ Sample music data from 3,494+ real tracks
-
-### **⚙️ Manual Configuration**
-1. **Get Redis Cloud connection**: Sign up at https://redis.com/try-free/
-2. **Edit .env file**: Add your Redis Cloud connection string
-3. **Open RDI Web UI**: http://localhost:8080
-
-### 2. Verify Your Environment
+### **Option 2: With Local Redis**
 ```bash
-# Test all connections
-source .env
-redis-cli -u "$REDIS_URL" ping
-psql -U rdi_user -d rdi_db -h localhost -c "SELECT version();"
+# Clone and start with local Redis
+git clone https://github.com/Cammer15m/Redis_RDI_CTF
+cd Redis_RDI_CTF
+
+# Start CTF + local Redis
+docker-compose --profile local-redis up --build
+
+# Access the CTF
+open http://localhost:8080
 ```
 
-### 3. Start the Labs
+## 🎮 What's Included
+
+### **Single Container Includes:**
+- ✅ **PostgreSQL** with sample music database (3,494+ tracks)
+- ✅ **Python environment** with all dependencies
+- ✅ **RDI connector scripts** for data synchronization
+- ✅ **Web monitoring interface** (http://localhost:8080)
+- ✅ **SQLPad** for PostgreSQL queries (http://localhost:3001)
+- ✅ **All lab materials** and CTF challenges
+- ✅ **Flag validation system**
+
+### **External (Your Choice):**
+- 🔗 **Redis** - Use Redis Cloud (recommended) or local Redis
+
+## 🚀 Getting Started
+
+### **1. Start the Container**
 ```bash
-# Begin with Lab 1
+# Quick test build
+./build_and_test.sh
+
+# Or manual start
+docker-compose up --build
+```
+
+### **2. Configure Redis Connection**
+Edit `.env` file:
+```bash
+# For Redis Cloud (recommended)
+REDIS_URL=redis://username:password@host:port
+
+# Or for local Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+```
+
+### **3. Begin Lab 1**
+```bash
+# Enter the container
+docker exec -it redis-rdi-ctf bash
+
+# Navigate to Lab 1
 cd labs/01_postgres_to_redis
 cat README.md
+
+# Start RDI connector
+cd /app/scripts
+python3 rdi_connector.py
 ```
 
-### 4. Monitor Your Progress
-- **RedisInsight**: Explore your Redis Cloud data visually
-- **Flag Checker**: `cd scripts && source ../.env && python3 check_flags.py`
+### **4. Monitor Your Progress**
+- **Web UI**: http://localhost:8080
+- **SQLPad**: http://localhost:3001
+- **Flag Checker**: `python3 scripts/check_flags.py`
 
 ## 🏗️ Architecture
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   PostgreSQL    │───▶│   Redis RDI     │───▶│   Redis Cloud   │
-│    (Local)      │    │   (Platform)    │    │   (Your DB)     │
+│   PostgreSQL    │───▶│   RDI Connector │───▶│   Redis Cloud   │
+│  (Container)    │    │  (Container)    │    │   (Your DB)     │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
-                               │                        ▲
-                               │                        │
-                               ▼                        │
-                   ┌─────────────────┐                  │
-                   │  RedisInsight   │──────────────────┘
-                   │     (Local)     │
-                   └─────────────────┘
+         │                       │                        ▲
+         │                       │                        │
+         ▼                       ▼                        │
+┌─────────────────┐    ┌─────────────────┐                │
+│    SQLPad       │    │   Web Monitor   │────────────────┘
+│  (Container)    │    │  (Container)    │
+└─────────────────┘    └─────────────────┘
 ```
 
 **Components:**
-- **🏠 Local**: PostgreSQL, RedisInsight (you install)
-- **☁️ Cloud**: Redis database + RDI platform (Redis Cloud)
-- **🔗 Integration**: RDI handles real-time data synchronization
+- **🐳 Container**: PostgreSQL, RDI Connector, Web UI, SQLPad
+- **☁️ External**: Redis Cloud (or local Redis)
+- **🔗 Integration**: Custom RDI simulation handles real-time sync
 
 ## 📚 Lab Overview
 
@@ -132,10 +152,29 @@ python3 check_flags.py
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| Redis | 6379 | Primary data store |
-| RedisInsight | 8001 | Redis web UI |
 | PostgreSQL | 5432 | Source database |
-| Redis RDI | 8080 | RDI web interface |
+| Web Monitor | 8080 | RDI monitoring interface |
+| SQLPad | 3001 | PostgreSQL query interface |
+| Redis | 6379 | Target database (external) |
+
+## 🧹 Cleanup
+
+### **Stop Everything**
+```bash
+docker-compose down
+```
+
+### **Complete Removal**
+```bash
+# Remove containers and volumes
+docker-compose down -v
+
+# Remove images
+docker rmi redis-rdi-ctf_redis-rdi-ctf
+
+# Remove project directory
+cd .. && rm -rf Redis_RDI_CTF
+```
 
 ## 📁 Directory Structure
 
@@ -162,33 +201,47 @@ Redis_RDI_CTF/
 
 ## 🔧 Troubleshooting
 
-### Services Won't Start
+### **Container Won't Start**
 ```bash
-# Check Docker is running
-docker --version
+# Check logs
+docker logs redis-rdi-ctf
 
-# View service logs
-docker-compose logs <service-name>
-
-# Restart all services
-docker-compose down && docker-compose up -d
+# Rebuild container
+docker-compose up --build --force-recreate
 ```
 
-### Can't Connect to Services
+### **Can't Connect to Redis**
 ```bash
-# Check if ports are available
-netstat -an | grep -E "(6379|5432|8001|8080)"
+# Check .env configuration
+cat .env
 
-# Verify containers are running
-docker ps
+# Test Redis connection from container
+docker exec redis-rdi-ctf python3 -c "import redis; r=redis.from_url('your-redis-url'); print(r.ping())"
 ```
 
-### Reset Environment
+### **PostgreSQL Issues**
 ```bash
-# Clean slate restart
-docker-compose down -v
-docker-compose up -d
+# Check PostgreSQL status
+docker exec redis-rdi-ctf pg_isready -U rdi_user -d rdi_db
+
+# View PostgreSQL logs
+docker exec redis-rdi-ctf tail -f /var/log/postgresql.log
 ```
+
+### **Port Conflicts**
+```bash
+# Check what's using ports
+netstat -an | grep -E "(5432|8080|3001)"
+
+# Use different ports
+docker-compose up -p 15432:5432 -p 18080:8080 -p 13001:3001
+```
+
+## 💡 Advanced Setup (Local Installation)
+
+For advanced users who prefer local installation, see [docs/LEGACY_SETUP.md](docs/LEGACY_SETUP.md).
+
+**⚠️ Warning**: Local installation modifies your system and requires manual cleanup.
 
 ## 🎓 Learning Resources
 

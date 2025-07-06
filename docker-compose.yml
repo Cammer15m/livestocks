@@ -1,33 +1,36 @@
 version: '3.8'
 
 services:
-  # PostgreSQL - Source database with music data
-  postgres:
-    image: postgres:15
-    container_name: postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: chinook
+  # Redis RDI CTF - All-in-one container
+  redis-rdi-ctf:
+    build: .
+    container_name: redis-rdi-ctf
     ports:
-      - "5432:5432"
+      - "5432:5432"   # PostgreSQL
+      - "8080:8080"   # RDI Web UI
+      - "3001:3001"   # SQLPad
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./seed/music_database.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./labs:/app/labs
+      - ./scripts:/app/scripts
+      - ./.env:/app/.env
+      - ctf_data:/var/lib/postgresql/14/main
+    environment:
+      - POSTGRES_USER=rdi_user
+      - POSTGRES_PASSWORD=rdi_password
+      - POSTGRES_DB=rdi_db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d chinook"]
+      test: ["CMD", "pg_isready", "-U", "rdi_user", "-d", "rdi_db", "-h", "localhost"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
     restart: unless-stopped
-    networks:
-      ctf_network:
-        ipv4_address: 172.20.0.10
 
-  # Redis - Target database for RDI
+  # Optional: Local Redis for testing (users can use Redis Cloud instead)
+  # Start with: docker-compose --profile local-redis up
   redis:
     image: redis:7-alpine
-    container_name: redis
+    container_name: redis-local
     ports:
       - "6379:6379"
     volumes:
@@ -38,103 +41,11 @@ services:
       timeout: 10s
       retries: 3
     restart: unless-stopped
-    networks:
-      ctf_network:
-        ipv4_address: 172.20.0.11
-
-  # RedisInsight - Redis management UI
-  redisinsight:
-    image: redis/redisinsight:latest
-    container_name: redisinsight
-    ports:
-      - "5540:5540"
-    volumes:
-      - redisinsight_data:/db
-    restart: unless-stopped
-    depends_on:
-      - redis
-    networks:
-      ctf_network:
-        ipv4_address: 172.20.0.12
-
-  # SQLPad - PostgreSQL query interface
-  sqlpad:
-    image: sqlpad/sqlpad:6
-    container_name: sqlpad
-    ports:
-      - "3001:3000"
-    environment:
-      SQLPAD_ADMIN: admin@ctf.local
-      SQLPAD_ADMIN_PASSWORD: ctfpassword
-      SQLPAD_APP_LOG_LEVEL: info
-      SQLPAD_WEB_LOG_LEVEL: warn
-      SQLPAD_CONNECTIONS__pgdemo__name: CTF-Music-DB
-      SQLPAD_CONNECTIONS__pgdemo__driver: postgres
-      SQLPAD_CONNECTIONS__pgdemo__host: postgres
-      SQLPAD_CONNECTIONS__pgdemo__database: chinook
-      SQLPAD_CONNECTIONS__pgdemo__username: postgres
-      SQLPAD_CONNECTIONS__pgdemo__password: postgres
-    depends_on:
-      - postgres
-    networks:
-      ctf_network:
-        ipv4_address: 172.20.0.13
-
-  # Load Generator for realistic data simulation
-  loadgen:
-    build:
-      context: .
-      dockerfile: Dockerfile.loadgen
-    container_name: loadgen
-    volumes:
-      - ./scripts:/scripts
-    depends_on:
-      - postgres
-    networks:
-      ctf_network:
-        ipv4_address: 172.20.0.14
-
-  # Redis RDI - Data Integration platform (placeholder for user's cloud instance)
-  # Note: Users will connect to their own Redis Cloud RDI instance
-  # This is just for local development/testing
-  redis-rdi:
-    image: redis/rdi:latest
-    container_name: redis-rdi
-    ports:
-      - "8080:8080"
-      - "8081:8081"
-    environment:
-      - RDI_HOST=0.0.0.0
-      - RDI_PORT=8080
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      ctf_network:
-        ipv4_address: 172.20.0.15
+    profiles:
+      - local-redis
 
 volumes:
-  postgres_data:
+  ctf_data:
     driver: local
   redis_data:
     driver: local
-  redisinsight_data:
-    driver: local
-
-networks:
-  ctf_network:
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.20.0.0/24
-          gateway: 172.20.0.1
