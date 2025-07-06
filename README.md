@@ -194,7 +194,7 @@ Redis_RDI_CTF/
 ├── 📖 README.md                 # This file
 ├── 🐳 Dockerfile                # Container definition
 ├── 🐳 docker-compose.yml        # Service orchestration
-├── ⚙️  .env.example             # Environment template
+├── ⚙️  .env                     # Environment configuration
 ├── 🧪 labs/                     # Hands-on exercises
 │   ├── 01_postgres_to_redis/    # Lab 1: Basic integration
 │   ├── 02_snapshot_vs_cdc/      # Lab 2: Replication modes
