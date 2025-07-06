@@ -11,13 +11,35 @@ Welcome to the **Redis Data Integration (RDI) Capture The Flag** challenge! This
 
 ## 📋 Prerequisites
 
-- **Redis Cloud** account (free tier available)
-- **PostgreSQL** installed locally
-- **Redis RDI** access (Cloud or local installation)
-- **RedisInsight** installed locally
-- **Redis CLI** available
+### System Requirements
+- **Operating System**: Linux, macOS, or Windows with WSL2
+- **RAM**: Minimum 4GB, Recommended 8GB+
+- **Disk Space**: ~3GB free space
+- **Docker**: Will be installed automatically if not present
+- **Python 3.7+**: With pip package manager
+- **Internet Connection**: For downloading packages and Docker images
+
+### Software Dependencies (Auto-installed)
+**Python Packages:**
+- `redis>=4.0.0` - Redis client library
+- `psycopg2-binary>=2.9.0` - PostgreSQL adapter
+- `flask>=2.0.0` - Web framework for monitoring UI
+- `pandas>=1.3.0` - Data manipulation library
+- `sqlalchemy>=1.4.0` - Database toolkit
+- `python-dotenv>=0.19.0` - Environment variable management
+- `requests>=2.28.0` - HTTP library
+
+**Docker Images (~2.5GB total):**
+- `postgres:15` (~350MB) - PostgreSQL database
+- `redis:7-alpine` (~30MB) - Redis server
+- `redis/redisinsight:latest` (~200MB) - Redis management UI
+- `sqlpad/sqlpad:6` (~150MB) - PostgreSQL query interface
+- `redis/rdi:latest` (~800MB) - Redis Data Integration platform
+
+### Knowledge Prerequisites
 - **Basic knowledge** of databases and data integration
 - **Terminal/Command line** familiarity
+- **Redis Cloud** account (free tier available) - Optional for advanced features
 
 ## 🚀 Quick Start
 
