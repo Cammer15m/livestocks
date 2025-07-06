@@ -6,11 +6,11 @@ echo "====================================================="
 
 # Build the container
 echo "🔨 Building container..."
-docker-compose build
+docker compose build
 
 # Start the container
 echo "🚀 Starting container..."
-docker-compose up -d
+docker compose up -d
 
 # Wait for container to be ready
 echo "⏳ Waiting for services to start..."
@@ -64,4 +64,4 @@ echo "  2. docker exec -it redis-rdi-ctf bash"
 echo "  3. cd labs/01_postgres_to_redis"
 echo "  4. Start the CTF!"
 echo ""
-echo "🧹 To stop: docker-compose down"
+echo "🧹 To stop: docker compose down"
