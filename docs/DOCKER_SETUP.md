@@ -41,7 +41,7 @@ open http://localhost:8080
 - ✅ **Python environment** with all dependencies
 - ✅ **RDI connector scripts** for data synchronization
 - ✅ **Web monitoring interface** (http://localhost:8080)
-- ✅ **SQLPad** for PostgreSQL queries (http://localhost:3001)
+- ✅ **Database shell access** via `docker exec`
 - ✅ **All lab materials** and CTF challenges
 - ✅ **Flag validation system**
 
@@ -53,7 +53,7 @@ open http://localhost:8080
 - **Docker**: 20.10+ with Docker Compose
 - **RAM**: 2GB minimum, 4GB recommended
 - **Disk**: ~1GB for container + data
-- **Ports**: 5432, 8080, 3001 (and 6379 if using local Redis)
+- **Port**: 8080 (and 6379 if using local Redis)
 
 ## ⚙️ Configuration
 

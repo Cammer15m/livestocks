@@ -17,7 +17,7 @@ Welcome to the **Redis Data Integration (RDI) Capture The Flag** challenge! This
 - **Docker**: 20.10+ with Docker Compose
 - **RAM**: 2GB minimum, 4GB recommended
 - **Disk**: ~1GB free space
-- **Ports**: 5432, 8080, 3001 available
+- **Port**: 8080 available
 
 ### **Option 1: With Redis Cloud (Recommended)**
 ```bash
@@ -56,9 +56,9 @@ open http://localhost:8080
 - ✅ **Python environment** with all dependencies
 - ✅ **RDI connector scripts** for data synchronization
 - ✅ **Web monitoring interface** (http://localhost:8080)
-- ✅ **SQLPad** for PostgreSQL queries (http://localhost:3001)
 - ✅ **All lab materials** and CTF challenges
 - ✅ **Flag validation system**
+- ✅ **Database access** via container shell
 
 ### **External (Your Choice):**
 - 🔗 **Redis** - Use Redis Cloud (recommended) or local Redis
@@ -101,8 +101,8 @@ python3 rdi_connector.py
 
 ### **4. Monitor Your Progress**
 - **Web UI**: http://localhost:8080
-- **SQLPad**: http://localhost:3001
 - **Flag Checker**: `python3 scripts/check_flags.py`
+- **Database Access**: `docker exec -it redis-rdi-ctf psql -U rdi_user -d rdi_db`
 
 ## 🏗️ Architecture
 
@@ -148,14 +148,26 @@ python3 check_flags.py
 - `flag:02` → `RDI{snapshot_vs_cdc_detected}`
 - `flag:03` → `RDI{advanced_features_mastered}`
 
-## 🛠️ Services & Ports
+## 🛠️ Services & Access
 
-| Service | Port | Purpose |
-|---------|------|---------|
-| PostgreSQL | 5432 | Source database |
-| Web Monitor | 8080 | RDI monitoring interface |
-| SQLPad | 3001 | PostgreSQL query interface |
-| Redis | 6379 | Target database (external) |
+| Service | Access Method | Purpose |
+|---------|---------------|---------|
+| **Web Monitor** | http://localhost:8080 | Main CTF interface |
+| **PostgreSQL** | Container shell | Source database |
+| **Redis** | External (your choice) | Target database |
+
+### **Container Access Methods:**
+```bash
+# Main web interface (external)
+open http://localhost:8080
+
+# Database access (container shell)
+docker exec -it redis-rdi-ctf psql -U rdi_user -d rdi_db
+
+# Run CTF scripts (container shell)
+docker exec -it redis-rdi-ctf bash
+cd scripts && python3 rdi_connector.py
+```
 
 ## 🧹 Cleanup
 
@@ -223,18 +235,51 @@ docker exec redis-rdi-ctf python3 -c "import redis; r=redis.from_url('your-redis
 # Check PostgreSQL status
 docker exec redis-rdi-ctf pg_isready -U rdi_user -d rdi_db
 
+# Access PostgreSQL directly
+docker exec -it redis-rdi-ctf psql -U rdi_user -d rdi_db
+
 # View PostgreSQL logs
 docker exec redis-rdi-ctf tail -f /var/log/postgresql.log
 ```
 
 ### **Port Conflicts**
 ```bash
-# Check what's using ports
-netstat -an | grep -E "(5432|8080|3001)"
+# Check if port 8080 is in use
+netstat -an | grep 8080
 
-# Use different ports
-docker-compose up -p 15432:5432 -p 18080:8080 -p 13001:3001
+# Use different port if needed
+docker compose up -p 18080:8080
 ```
+
+## 🐳 Container Access Guide
+
+### **Everything Runs Inside the Container**
+The CTF is designed to be completely self-contained. All services run inside Docker:
+
+```bash
+# Main interface (external access)
+open http://localhost:8080
+
+# Database queries (inside container)
+docker exec -it redis-rdi-ctf psql -U rdi_user -d rdi_db -c "SELECT COUNT(*) FROM \"Track\";"
+
+# Interactive database session
+docker exec -it redis-rdi-ctf psql -U rdi_user -d rdi_db
+
+# Run CTF scripts
+docker exec -it redis-rdi-ctf bash
+cd scripts
+python3 rdi_connector.py
+
+# Check flags
+docker exec -it redis-rdi-ctf python3 scripts/check_flags.py
+```
+
+### **Why Single Port Design?**
+- ✅ **Simpler setup** - Only one port to remember
+- ✅ **More secure** - No database exposed to host
+- ✅ **Fewer conflicts** - Less chance of port collisions
+- ✅ **Container-native** - Everything accessible via `docker exec`
 
 ## 💡 Advanced Setup (Local Installation)
 

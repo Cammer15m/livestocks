@@ -6,9 +6,7 @@ services:
     build: .
     container_name: redis-rdi-ctf
     ports:
-      - "5432:5432"   # PostgreSQL
-      - "8080:8080"   # RDI Web UI
-      - "3001:3001"   # SQLPad
+      - "8080:8080"   # RDI Web UI (main interface)
     volumes:
       - ./labs:/app/labs
       - ./scripts:/app/scripts

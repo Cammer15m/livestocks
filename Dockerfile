@@ -72,7 +72,7 @@ RUN echo "# Redis RDI CTF Environment Configuration" > /app/.env.template && \
 RUN chmod +x scripts/*.sh scripts/*.py
 
 # Expose ports
-EXPOSE 5432 8080 3001
+EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
