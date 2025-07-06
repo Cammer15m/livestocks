@@ -181,22 +181,21 @@ cd .. && rm -rf Redis_RDI_CTF
 ```
 Redis_RDI_CTF/
 ├── 📖 README.md                 # This file
+├── 🐳 Dockerfile                # Container definition
 ├── 🐳 docker-compose.yml        # Service orchestration
 ├── ⚙️  .env.example             # Environment template
 ├── 🧪 labs/                     # Hands-on exercises
 │   ├── 01_postgres_to_redis/    # Lab 1: Basic integration
 │   ├── 02_snapshot_vs_cdc/      # Lab 2: Replication modes
 │   └── 03_advanced_rdi/         # Lab 3: Advanced features
-├── 🏴 flags/                    # CTF flag management
-│   ├── flag_injector.lua        # Flag injection script
-│   └── redis_flag_map.json      # Flag definitions
 ├── 🔧 scripts/                  # Utility scripts
 │   ├── check_flags.py           # Progress checker
-│   ├── setup_rdi_connectors.sh  # Connector setup
-│   └── test_all_labs.sh         # Environment tester
-└── 🌱 seed/                     # Sample data
-    ├── postgres.sql             # Database schema & data
-    └── track.csv                # Sample music data
+│   ├── rdi_connector.py         # Main RDI simulation
+│   └── rdi_web.py               # Web monitoring interface
+├── 🌱 seed/                     # Sample data
+│   └── music_database.sql       # Chinook database
+├── 🐳 docker/                   # Container support files
+└── 📚 docs/                     # Documentation
 ```
 
 ## 🔧 Troubleshooting

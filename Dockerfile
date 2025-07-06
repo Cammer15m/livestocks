@@ -28,11 +28,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt /app/
-COPY scripts/requirements.txt /app/scripts/
-COPY scripts/requirements_rdi.txt /app/scripts/
-RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir -r scripts/requirements.txt \
-    && pip install --no-cache-dir -r scripts/requirements_rdi.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy all project files
 COPY . /app/
