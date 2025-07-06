@@ -1,0 +1,5 @@
+{
+  "lab1": { "key": "flag:01", "value": "RDI{pg_to_redis_success}" },
+  "lab2": { "key": "flag:02", "value": "RDI{snapshot_vs_cdc_detected}" },
+  "lab3": { "key": "flag:03", "value": "RDI{advanced_features_mastered}" }
+}

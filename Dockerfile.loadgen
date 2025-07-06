@@ -1,0 +1,24 @@
+FROM python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /scripts
+
+# Copy requirements and install Python dependencies
+COPY scripts/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy scripts and data
+COPY scripts/ .
+COPY seed/ ./data/
+
+# Make the script executable
+RUN chmod +x generate_load.py
+
+# Default command
+CMD ["python", "generate_load.py"]
