@@ -25,7 +25,7 @@ Welcome to the **Redis Data Integration (RDI) Capture The Flag** challenge! This
 ### **🚀 Automated Setup (Recommended)**
 ```bash
 # Clone the repository
-git clone <your-repo-url>
+git clone https://github.com/Cammer15m/Redis_RDI_CTF
 cd Redis_RDI_CTF
 
 # One-command setup (installs everything automatically)
