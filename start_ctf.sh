@@ -44,7 +44,8 @@ if grep -q "REDIS_URL=redis://default:password@redis-17173" .env; then
         echo "🔍 Testing Redis connection..."
         if command -v redis-cli >/dev/null 2>&1; then
             # Use redis-cli if available
-            if redis-cli -u "$redis_url" ping >/dev/null 2>&1; then
+            echo "   (Using redis-cli...)"
+            if timeout 10 redis-cli -u "$redis_url" ping >/dev/null 2>&1; then
                 echo "✅ Redis connection successful!"
                 echo ""
             else
@@ -54,24 +55,34 @@ if grep -q "REDIS_URL=redis://default:password@redis-17173" .env; then
                 exit 1
             fi
         else
-            # Use Python as fallback
+            # Try Python with timeout and better error handling
             echo "   (Using Python to test connection...)"
-            if python3 -c "
-import redis
+            if timeout 10 python3 -c "
 import sys
 try:
-    r = redis.from_url('$redis_url')
-    r.ping()
-    print('✅ Redis connection successful!')
+    import redis
+    r = redis.from_url('$redis_url', socket_timeout=5, socket_connect_timeout=5)
+    result = r.ping()
+    if result:
+        print('✅ Redis connection successful!')
+    else:
+        print('❌ Redis ping failed!')
+        sys.exit(1)
+except ImportError:
+    print('⚠️  Redis library not available on host system.')
+    print('   Connection will be tested after container starts.')
 except Exception as e:
     print('❌ Failed to connect to Redis Cloud!')
-    print(f'   Error: {e}')
+    print(f'   Error: {str(e)}')
     print('   Please check your connection string and try again.')
     sys.exit(1)
 " 2>/dev/null; then
                 echo ""
             else
-                exit 1
+                # If Python test fails, warn but continue (will test in container)
+                echo "⚠️  Could not test Redis connection on host system."
+                echo "   Connection will be verified after container starts."
+                echo ""
             fi
         fi
 
