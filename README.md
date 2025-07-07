@@ -1,23 +1,22 @@
-# Redis RDI CTF 🚀
+# Redis RDI Training Environment 🚀
 
-Welcome to the **Redis Data Integration (RDI) Capture The Flag** challenge! This hands-on learning environment teaches real-time data integration patterns using Redis and PostgreSQL.
+Welcome to the **Redis Data Integration (RDI) Training Environment**! This professional setup provides hands-on experience with real Redis RDI, PostgreSQL, and Redis Enterprise.
 
 ## 🎯 What You'll Learn
 
-- **Data Integration Patterns**: Snapshot vs Change Data Capture (CDC)
-- **Real-time Data Replication**: PostgreSQL → Redis synchronization
-- **Redis Data Structures**: Hashes, Streams, and JSON
-- **Advanced RDI Features**: Transformations and multi-table replication
+- **Real Redis RDI**: Work with actual Redis Data Integration tools
+- **Production Environment**: Redis Enterprise cluster with monitoring
+- **Data Pipeline Management**: Configure and manage real data pipelines
+- **Professional Tools**: Redis Insight, Grafana monitoring, Prometheus metrics
 
-## 🐳 Quick Start (Docker - Recommended)
+## 🐳 Quick Start
 
-**Professional multi-container setup modeled after Redis RDI training environment!**
+**Professional Redis RDI training environment with Redis Enterprise!**
 
 ### **Prerequisites**
 - **Docker**: 20.10+ with Docker Compose
-- **RAM**: 4GB minimum, 8GB recommended
-- **Disk**: ~2GB free space
-- **Ports**: 5432, 5540, 8080 available
+- **RAM**: 8GB minimum, 16GB recommended
+- **Disk**: ~5GB free space
 - **Redis Cloud Account**: Free at [redis.com/try-free](https://redis.com/try-free/)
 
 ### **🎯 Quick Setup**
@@ -26,64 +25,73 @@ Welcome to the **Redis Data Integration (RDI) Capture The Flag** challenge! This
 git clone https://github.com/Cammer15m/Redis_RDI_CTF
 cd Redis_RDI_CTF
 
-# Start all services
-./start_ctf.sh
+# Set domain and start all services
+export DOMAIN=localhost
+./start.sh
 
 # The script will start:
-# ✅ PostgreSQL with music store data
-# ✅ Redis Insight for RDI configuration
-# ✅ RDI CLI container for management
-# ✅ Load generator for testing
-# ✅ Web interface with instructions
+# ✅ Redis Enterprise cluster
+# ✅ PostgreSQL with sample data
+# ✅ Redis RDI for data integration
+# ✅ Redis Insight for monitoring
+# ✅ Grafana + Prometheus monitoring stack
 ```
 
 ### **🌐 Service Access**
-- **CTF Dashboard**: http://localhost:8080
-- **Redis Insight**: http://localhost:5540
-- **PostgreSQL**: localhost:5432 (musicstore/postgres/postgres)
+- **Redis Insight**: http://localhost:8443
+- **Grafana Monitoring**: http://localhost:3000
+- **PostgreSQL**: localhost:5432 (postgres/postgres/postgres)
 
 ### **🔧 Configure RDI**
 ```bash
-# 1. Copy configuration template
-docker exec -it rdi-ctf-cli cp /config/config.yaml.template /config/config.yaml
+# 1. Access the RDI container
+docker exec -it rdi bash
 
-# 2. Edit with your Redis Cloud details
-docker exec -it rdi-ctf-cli nano /config/config.yaml
+# 2. Configure RDI with your Redis Cloud connection
+redis-di configure --rdi-host localhost:13000 --rdi-password <password>
 
-# 3. Deploy RDI configuration
-docker exec -it rdi-ctf-cli redis-di deploy --config /config/config.yaml
+# 3. Set up data pipeline
+redis-di create-pipeline --name postgres-pipeline
 
-# 4. Start the pipeline
-docker exec -it rdi-ctf-cli redis-di start
+# 4. Deploy and start pipeline
+redis-di deploy
+redis-di start
 ```
-### **🧪 Testing & Load Generation**
-```bash
-# Generate test data for CDC testing
-docker exec -it rdi-ctf-loadgen python /scripts/generate_load.py
 
+### **🧪 Testing & Monitoring**
+```bash
 # Check RDI status
-docker exec -it rdi-ctf-cli redis-di status
+docker exec -it rdi redis-di status
 
 # View RDI logs
-docker exec -it rdi-ctf-cli redis-di logs
+docker exec -it rdi redis-di logs
+
+# Access PostgreSQL for testing
+docker exec -it postgres psql -U postgres -d postgres
+
+# Monitor with Redis Insight
+# Visit: http://localhost:8443
 ```
 
 ### **⚠️ Important: Clean Start**
-If you see an old web interface or errors, ensure you're using the new setup:
+If you encounter issues, ensure clean startup:
 ```bash
-# Stop any old containers
-docker stop $(docker ps -q) 2>/dev/null || true
+# Stop all containers
+./stop.sh
+
+# Clean up
 docker system prune -f
 
-# Start fresh with new architecture
-./start_ctf.sh
+# Start fresh
+export DOMAIN=localhost
+./start.sh
 ```
 
-## 🛑 Stopping the CTF
+## 🛑 Stopping the Environment
 
 ```bash
-# Stop all CTF containers safely
-./stop_ctf.sh
+# Stop all containers safely
+./stop.sh
 
 # Or manually
 docker-compose down
