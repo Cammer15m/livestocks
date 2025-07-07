@@ -25,42 +25,35 @@ Welcome to the **Redis Data Integration (RDI) Capture The Flag** challenge! This
 git clone https://github.com/Cammer15m/Redis_RDI_CTF
 cd Redis_RDI_CTF
 
-# One-command startup with verification
+# Interactive startup with Redis configuration
 ./start_ctf.sh
 
-# That's it! The script will:
+# The script will:
+# ✅ Prompt for Redis Cloud or local Redis choice
+# ✅ Collect Redis Cloud credentials if needed
+# ✅ Auto-configure .env file
 # ✅ Show startup logs for verification
-# ✅ Auto-detect success/failure
 # ✅ Keep container running in background if successful
-# ✅ Give you access URL when ready
 ```
 
-### **Option 1: With Redis Cloud (Recommended)**
+### **Manual Configuration (Alternative)**
+
+**Option 1: Redis Cloud**
 ```bash
-# Configure Redis connection (get free account at redis.com)
-# Edit .env and set your Redis Cloud URL:
+# Get free account at redis.com, then edit .env:
 # REDIS_URL=redis://username:password@your-redis-cloud-host:port
 
-# Start the CTF
-./start_ctf.sh
-
-# Access the CTF
+docker-compose up -d --build
 open http://localhost:8080
 ```
 
-### **Option 2: With Local Redis**
+**Option 2: Local Redis**
 ```bash
-# Edit .env to use local Redis instead:
-# Comment out: REDIS_URL=redis://username:password@host:port
-# Uncomment:
-#   REDIS_HOST=localhost
-#   REDIS_PORT=6379
-#   REDIS_PASSWORD=
+# Edit .env to use local Redis:
+# Comment out: REDIS_URL=...
+# Uncomment: REDIS_HOST=localhost, REDIS_PORT=6379, REDIS_PASSWORD=
 
-# Start CTF + local Redis
 docker-compose --profile local-redis up -d --build
-
-# Access the CTF
 open http://localhost:8080
 ```
 
