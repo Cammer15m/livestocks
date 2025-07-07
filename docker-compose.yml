@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   postgresql:
-    image: postgres:15.3-bullseye
+    build:
+      context: .
+      dockerfile: postgresql.dockerfile
     container_name: postgresql
     ports:
       - '5432:5432'
@@ -16,7 +18,9 @@ services:
     restart: unless-stopped
 
   redis-insight:
-    image: redis/redisinsight:latest
+    build:
+      context: .
+      dockerfile: redis-insight.dockerfile
     container_name: redis-insight
     ports:
       - '5540:5540'
@@ -28,7 +32,9 @@ services:
     restart: unless-stopped
 
   rdi-cli:
-    image: redis/rdi:latest
+    build:
+      context: .
+      dockerfile: rdi.dockerfile
     container_name: rdi-cli
     volumes:
       - ./rdi-config:/config
@@ -42,10 +48,11 @@ services:
     command: tail -f /dev/null
 
   grafana:
-    image: grafana/grafana
+    build:
+      context: .
+      dockerfile: grafana.dockerfile
     container_name: grafana
     environment:
-      - GF_INSTALL_PLUGINS=redis-app,redis-datasource
       - GF_SECURITY_ADMIN_PASSWORD=${PASSWORD:-redislabs}
     volumes:
       - grafana-data:/var/lib/grafana
@@ -55,7 +62,9 @@ services:
     restart: unless-stopped
 
   prometheus:
-    image: prom/prometheus
+    build:
+      context: .
+      dockerfile: prometheus.dockerfile
     container_name: prometheus
     volumes:
       - ./prometheus/:/etc/prometheus/
@@ -66,7 +75,9 @@ services:
     restart: unless-stopped
 
   sqlpad:
-    image: sqlpad/sqlpad:6
+    build:
+      context: .
+      dockerfile: sqlpad.dockerfile
     container_name: sqlpad
     ports:
       - '3001:3000'

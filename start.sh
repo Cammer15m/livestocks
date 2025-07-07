@@ -85,15 +85,28 @@ fi
 
 # Check if Docker is running
 if ! docker info >/dev/null 2>&1; then
-    echo "  - Docker is installed but not running. Starting Docker..."
-    sudo systemctl start docker
-    sleep 5
+    # Try with sudo if permission denied
+    if sudo docker info >/dev/null 2>&1; then
+        echo "  - Docker is running but user lacks permissions. Using sudo for Docker commands."
+        DOCKER_CMD="sudo docker"
+        DOCKER_COMPOSE_CMD="sudo docker-compose"
+    else
+        echo "  - Docker is installed but not running. Starting Docker..."
+        sudo systemctl start docker
+        sleep 10
 
-    # Check again
-    if ! docker info >/dev/null 2>&1; then
-        echo "ERROR: Failed to start Docker. Please check Docker installation."
-        exit 1
+        # Check again
+        if ! sudo docker info >/dev/null 2>&1; then
+            echo "ERROR: Failed to start Docker. Please check Docker installation."
+            exit 1
+        fi
+        echo "  - Docker started successfully"
+        DOCKER_CMD="sudo docker"
+        DOCKER_COMPOSE_CMD="sudo docker-compose"
     fi
+else
+    DOCKER_CMD="docker"
+    DOCKER_COMPOSE_CMD="docker-compose"
 fi
 
 # Check if Docker Compose is available
@@ -184,21 +197,21 @@ echo ""
 echo "Cleaning up any previous runs..."
 
 # Stop and remove any existing containers
-if docker-compose ps -q 2>/dev/null | grep -q .; then
+if $DOCKER_COMPOSE_CMD ps -q 2>/dev/null | grep -q .; then
     echo "  - Stopping existing containers..."
-    docker-compose down --remove-orphans --volumes 2>/dev/null || true
+    $DOCKER_COMPOSE_CMD down --remove-orphans --volumes 2>/dev/null || true
 fi
 
 # Remove any orphaned containers from old setups
 echo "  - Removing orphaned containers..."
-docker stop $(docker ps -q --filter "name=rdi-ctf") 2>/dev/null || true
-docker rm $(docker ps -aq --filter "name=rdi-ctf") 2>/dev/null || true
-docker stop $(docker ps -q --filter "name=redis-rdi-ctf") 2>/dev/null || true
-docker rm $(docker ps -aq --filter "name=redis-rdi-ctf") 2>/dev/null || true
+$DOCKER_CMD stop $($DOCKER_CMD ps -q --filter "name=rdi-ctf") 2>/dev/null || true
+$DOCKER_CMD rm $($DOCKER_CMD ps -aq --filter "name=rdi-ctf") 2>/dev/null || true
+$DOCKER_CMD stop $($DOCKER_CMD ps -q --filter "name=redis-rdi-ctf") 2>/dev/null || true
+$DOCKER_CMD rm $($DOCKER_CMD ps -aq --filter "name=redis-rdi-ctf") 2>/dev/null || true
 
 # Clean up any dangling resources
 echo "  - Cleaning up Docker resources..."
-docker system prune -f >/dev/null 2>&1 || true
+$DOCKER_CMD system prune -f >/dev/null 2>&1 || true
 
 echo "SUCCESS: Cleanup completed"
 
@@ -251,7 +264,7 @@ fi
 
 # Start containers with build
 echo "  - Building and starting containers..."
-docker-compose up -d --build --remove-orphans
+$DOCKER_COMPOSE_CMD up -d --build --remove-orphans
 
 # ---------------------------------------------------------------------------
 # Container Health Checks
@@ -265,8 +278,8 @@ sleep 10
 # Check container status
 echo "  - Checking container status..."
 failed_containers=()
-for container in $(docker-compose ps --services); do
-    if ! docker-compose ps $container | grep -q "Up"; then
+for container in $($DOCKER_COMPOSE_CMD ps --services); do
+    if ! $DOCKER_COMPOSE_CMD ps $container | grep -q "Up"; then
         failed_containers+=($container)
     fi
 done
@@ -276,7 +289,7 @@ if [ ${#failed_containers[@]} -gt 0 ]; then
     echo "Container logs:"
     for container in "${failed_containers[@]}"; do
         echo "--- $container ---"
-        docker-compose logs --tail=10 $container
+        $DOCKER_COMPOSE_CMD logs --tail=10 $container
     done
     exit 1
 fi
@@ -292,7 +305,7 @@ echo "Configuring services..."
 # Wait for PostgreSQL to be ready
 echo "  - Waiting for PostgreSQL to be ready..."
 timeout=60
-while ! docker exec postgresql pg_isready -U postgres >/dev/null 2>&1; do
+while ! $DOCKER_CMD exec postgresql pg_isready -U postgres >/dev/null 2>&1; do
     timeout=$((timeout - 1))
     if [ $timeout -eq 0 ]; then
         echo "ERROR: PostgreSQL failed to start within 60 seconds"
@@ -316,7 +329,7 @@ fi
 # Final container restart to ensure everything is properly configured
 echo "  - Final service restart..."
 sleep 10
-docker-compose up -d
+$DOCKER_COMPOSE_CMD up -d
 sleep 10
 
 
@@ -331,7 +344,7 @@ expected_containers=("postgresql" "grafana" "prometheus" "redis-insight" "rdi-cl
 failed_services=()
 
 for container in "${expected_containers[@]}"; do
-    if docker ps --format "table {{.Names}}" | grep -q "^$container$"; then
+    if $DOCKER_CMD ps --format "table {{.Names}}" | grep -q "^$container$"; then
         echo "  SUCCESS: $container is running"
     else
         echo "  ERROR: $container is not running"

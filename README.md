@@ -14,10 +14,10 @@ Welcome to the **Redis Data Integration (RDI) Training Environment**! This profe
 **Professional Redis RDI training environment with Redis Enterprise!**
 
 ### **Prerequisites**
-- **Docker**: 20.10+ with Docker Compose
-- **RAM**: 8GB minimum, 16GB recommended
-- **Disk**: ~5GB free space
+- **RAM**: 4GB minimum, 8GB recommended
+- **Disk**: ~3GB free space
 - **Redis Cloud Account**: Free at [redis.com/try-free](https://redis.com/try-free/)
+- **No Internet Required**: All dependencies included in repository
 
 ### **🎯 Quick Setup**
 ```bash
@@ -25,21 +25,24 @@ Welcome to the **Redis Data Integration (RDI) Training Environment**! This profe
 git clone https://github.com/Cammer15m/Redis_RDI_CTF
 cd Redis_RDI_CTF
 
-# Set domain and start all services
+# Start all services (Docker will be installed automatically if missing)
 export DOMAIN=localhost
 ./start.sh
 
-# The script will start:
-# ✅ Redis Enterprise cluster
-# ✅ PostgreSQL with sample data
-# ✅ Redis RDI for data integration
-# ✅ Redis Insight for monitoring
-# ✅ Grafana + Prometheus monitoring stack
+# The script will:
+# ✅ Install Docker automatically if needed
+# ✅ Build all containers locally (no external downloads)
+# ✅ Start PostgreSQL with sample data
+# ✅ Start Redis Insight for Redis Cloud connection
+# ✅ Start RDI CLI for data integration
+# ✅ Start monitoring and database tools
 ```
 
 ### **🌐 Service Access**
-- **Redis Insight**: http://localhost:8443
-- **Grafana Monitoring**: http://localhost:3000
+- **Redis Insight**: http://localhost:5540 (Connect to Redis Cloud)
+- **Monitoring Dashboard**: http://localhost:3000
+- **Database Browser**: http://localhost:3001 (SQLPad)
+- **Metrics**: http://localhost:9090 (Prometheus)
 - **PostgreSQL**: localhost:5432 (postgres/postgres/postgres)
 
 ### **🔧 Configure RDI**

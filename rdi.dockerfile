@@ -2,19 +2,27 @@ FROM redislabs/redis-di-cli:v0.118.0
 
 USER root:root
 
-RUN microdnf install openssh-server
+# Install basic tools
+RUN microdnf install -y openssh-server curl python3 python3-pip
 
-RUN adduser  labuser && \
+# Create labuser
+RUN adduser labuser && \
     usermod -aG wheel labuser
 
+# Generate SSH keys
 RUN ssh-keygen -A
 
+# Install Python dependencies for RDI
+RUN python3 -m pip install redis psycopg2-binary
+
+# Create scripts directory
+RUN mkdir -p /scripts
+
+# Switch to labuser
 USER labuser:labuser
 
-COPY from-repo/scripts /scripts
+# Set working directory
+WORKDIR /home/labuser
 
-USER root:root
-
-RUN python3 -m pip install -r /scripts/generate-load-requirements.txt
-
-#RUN echo '\n\nlabuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+# Default command
+CMD ["tail", "-f", "/dev/null"]
