@@ -58,25 +58,25 @@ show_progress() {
     local total=$2
     local message=$3
     local percent=$((current * 100 / total))
-    local filled=$((percent / 2))
-    local empty=$((50 - filled))
+    local filled=$((percent / 5))  # 20 chars max width for bar
+    local empty=$((20 - filled))
 
     printf "\r\033[K"  # Clear line
-    printf "[$percent%%] "
-    printf "%*s" $filled | tr ' ' '█'
-    printf "%*s" $empty | tr ' ' '░'
-    printf " $message"
+    printf "[%3d%%] [" $percent
+    printf "%*s" $filled | tr ' ' '='
+    printf "%*s" $empty | tr ' ' '-'
+    printf "] %s" "$message"
 }
 
 complete_step() {
     local step=$1
     local message=$2
-    printf "\r\033[K✅ [$step/10] $message\n"
+    printf "\r\033[K[DONE] [%d/10] %s\n" $step "$message"
 }
 
 echo ""
-echo "🚀 Starting Redis RDI Training Environment..."
-echo "   This will take approximately 3-5 minutes"
+echo "Starting Redis RDI Training Environment..."
+echo "This will take approximately 3-5 minutes"
 echo ""
 
 # Step 1: Prepare environment
