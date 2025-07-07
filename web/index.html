@@ -25,16 +25,15 @@
         <h2>📋 Quick Start Guide</h2>
         
         <div class="step">
-            <h3>Step 1: Configure Redis Cloud</h3>
-            <p>Copy the environment template and add your Redis Cloud details:</p>
-            <div class="command">cp .env.template .env</div>
-            <p>Edit <code>.env</code> with your Redis Cloud connection details from your dashboard.</p>
+            <h3>Step 1: Get Redis Cloud Account</h3>
+            <p>Sign up for a free Redis Cloud account at <a href="https://redis.io/try-free" target="_blank">redis.io/try-free</a></p>
+            <p>Create a database and note your connection details from the dashboard.</p>
         </div>
 
         <div class="step">
             <h3>Step 2: Start the Environment</h3>
-            <div class="command">docker-compose -f docker-compose-cloud.yml up -d</div>
-            <p>This will start PostgreSQL, Redis Insight, RDI CLI, and load generator containers.</p>
+            <div class="command">./quick-start.sh</div>
+            <p>The script will prompt you for your Redis Cloud connection details and automatically configure everything.</p>
         </div>
 
         <div class="step">

@@ -8,26 +8,23 @@
 
 ## 30-Second Setup
 
-### 1. Clone & Configure
+### 1. Clone & Start
 ```bash
 git clone https://github.com/Cammer15m/Redis_RDI_CTF.git
 cd Redis_RDI_CTF
-cp .env.template .env
-```
-
-### 2. Add Redis Cloud Details
-Edit `.env` with your Redis Cloud connection info:
-```bash
-REDIS_HOST=redis-12345.c123.us-east-1-1.ec2.redns.redis-cloud.com
-REDIS_PORT=12345
-REDIS_PASSWORD=your-password
-REDIS_USER=default
-```
-
-### 3. Start Everything
-```bash
+git checkout streamlined-cloud-setup
 ./quick-start.sh
 ```
+
+### 2. Enter Redis Cloud Details
+The script will prompt you for:
+- Redis Cloud Host (from your dashboard)
+- Redis Cloud Port
+- Redis Cloud Password
+- Username (defaults to 'default')
+
+### 3. Everything Starts Automatically
+The script handles all configuration and container startup.
 
 ### 4. Configure RDI Pipeline
 ```bash

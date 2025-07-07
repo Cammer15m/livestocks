@@ -4,7 +4,7 @@ echo "🔧 Setting up RDI pipeline..."
 
 # Wait for PostgreSQL to be ready
 echo "⏳ Waiting for PostgreSQL..."
-docker exec rdi-cli bash -c 'while ! pg_isready -h postgresql -p 5432 -U postgres; do sleep 2; done'
+docker exec rdi-postgres bash -c 'while ! pg_isready -U postgres; do sleep 2; done'
 
 # Substitute environment variables in config
 echo "📝 Configuring RDI with environment variables..."
