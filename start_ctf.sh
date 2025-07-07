@@ -40,6 +40,41 @@ if grep -q "REDIS_URL=redis://default:password@redis-17173" .env; then
         echo "✅ Redis Cloud configuration saved to .env"
         echo ""
 
+        # Test Redis connection
+        echo "🔍 Testing Redis connection..."
+        if command -v redis-cli >/dev/null 2>&1; then
+            # Use redis-cli if available
+            if redis-cli -u "$redis_url" ping >/dev/null 2>&1; then
+                echo "✅ Redis connection successful!"
+                echo ""
+            else
+                echo "❌ Failed to connect to Redis Cloud!"
+                echo "   Please check your connection string and try again."
+                echo "   Make sure your Redis Cloud instance is running."
+                exit 1
+            fi
+        else
+            # Use Python as fallback
+            echo "   (Using Python to test connection...)"
+            if python3 -c "
+import redis
+import sys
+try:
+    r = redis.from_url('$redis_url')
+    r.ping()
+    print('✅ Redis connection successful!')
+except Exception as e:
+    print('❌ Failed to connect to Redis Cloud!')
+    print(f'   Error: {e}')
+    print('   Please check your connection string and try again.')
+    sys.exit(1)
+" 2>/dev/null; then
+                echo ""
+            else
+                exit 1
+            fi
+        fi
+
     elif [ "$redis_option" = "2" ]; then
         echo ""
         echo "🐳 Configuring for local Redis..."
@@ -52,6 +87,7 @@ if grep -q "REDIS_URL=redis://default:password@redis-17173" .env; then
 
         echo "✅ Local Redis configuration saved to .env"
         echo "🚀 Will start with local Redis container"
+        echo "ℹ️  Local Redis connection will be tested after container starts"
         echo ""
 
         # Use local redis profile
