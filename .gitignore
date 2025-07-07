@@ -4,8 +4,8 @@ node_modules
 .vs
 csharp.sln.DotSettings.user
 
-rdi-training/grafana/tmp*
-rdi-training/rdi_install
+# RDI Training Reference - Keep local, don't commit
+rdi-training/
 
 code/**/.settings
 code/**/target
