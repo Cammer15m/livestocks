@@ -15,20 +15,9 @@ Welcome to the **Redis Data Integration (RDI) Capture The Flag** challenge! This
 
 ### **Prerequisites**
 - **Docker**: 20.10+ with Docker Compose
-- **Python 3**: With `redis` library (`pip3 install redis`)
 - **RAM**: 2GB minimum, 4GB recommended
 - **Disk**: ~1GB free space
 - **Port**: 8080 available
-
-**Quick Setup:**
-```bash
-# Install Python Redis library (for connection testing)
-pip3 install redis
-
-# Or on Ubuntu/Debian:
-sudo apt install python3-pip
-pip3 install redis
-```
 
 ### **🎯 Smart Startup (Recommended)**
 ```bash
@@ -377,12 +366,32 @@ open http://localhost:8080
 
 # View logs
 docker logs redis-rdi-ctf
+```
 
-# Enter container
+## 🐳 Container Access
+
+```bash
+# Enter container shell
 docker exec -it redis-rdi-ctf bash
 
-# Database access
+# Run Python scripts inside container
+docker exec -it redis-rdi-ctf python3 scripts/rdi_connector.py
+
+# Access PostgreSQL database
 docker exec -it redis-rdi-ctf psql -U rdi_user -d rdi_db
+
+# Test Redis connection from container
+docker exec -it redis-rdi-ctf python3 -c "
+import redis, os
+r = redis.from_url(os.getenv('REDIS_URL'))
+print('Redis ping:', r.ping())
+"
+
+# View environment variables
+docker exec -it redis-rdi-ctf env | grep REDIS
+
+# Check running processes
+docker exec -it redis-rdi-ctf ps aux
 ```
 
 ## 📄 License
