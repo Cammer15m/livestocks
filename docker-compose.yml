@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Redis RDI CTF - All-in-one container
   redis-rdi-ctf:
