@@ -29,187 +29,181 @@ In this lab, we'll migrate music track data from a PostgreSQL database to Redis 
 
 ### 1.1 Start the Lab Infrastructure
 
-First, let's start our local PostgreSQL database with the music data:
+First, start the complete RDI CTF environment:
 
 ```bash
 # Navigate to the CTF directory
 cd /path/to/Redis_RDI_CTF
 
-# Start the infrastructure
-docker-compose up -d postgres sqlpad redisinsight
+# Start all services
+./start_ctf.sh
 
 # Verify services are running
-docker-compose ps
+docker ps | grep rdi-ctf
 ```
 
 ### 1.2 Verify Database Content
 
-Open SQLPad in your browser at `http://localhost:3001` and login with:
-- **Username**: `admin@ctf.local`
-- **Password**: `ctfpassword`
+Connect to PostgreSQL to explore the music database:
 
-Run this query to explore the music database:
+```bash
+# Connect to PostgreSQL
+docker exec -it rdi-ctf-postgres psql -U postgres -d musicstore
 
-```sql
--- Check the Track table structure and data
-SELECT
-    t."TrackId",
-    t."Name",
-    a."Title" as "Album",
-    a."Artist",
-    g."Name" as "Genre",
-    t."Composer",
-    t."Milliseconds",
-    t."UnitPrice"
-FROM "Track" t
-JOIN "Album" a ON t."AlbumId" = a."AlbumId"
-JOIN "Genre" g ON t."GenreId" = g."GenreId"
-ORDER BY t."TrackId"
-LIMIT 10;
+# List tables
+\dt
+
+# Check track count
+SELECT COUNT(*) FROM "Track";
+
+# View sample tracks
+SELECT "TrackId", "Name", "Artist" FROM "Track"
+JOIN "Album" ON "Track"."AlbumId" = "Album"."AlbumId"
+LIMIT 5;
+
+# Exit PostgreSQL
+\q
 ```
 
-**🔍 What you should see**: A list of music tracks with details like track name, album, artist, genre, and other metadata.
+**🔍 Expected Result**: You should see 15 sample tracks with details like track name, album, artist, genre, and metadata.
 
 ## 🔧 Step 2: Configure Redis RDI
 
-### 2.1 Access Your Redis Cloud RDI Instance
+### 2.1 Set Up Redis Cloud Connection
 
-1. Log into your Redis Cloud console
-2. Navigate to your RDI-enabled database
-3. Open the RDI configuration interface
+First, ensure you have a Redis Cloud account and database:
 
-### 2.2 Create the RDI Pipeline Configuration
+1. Sign up at [redis.com/try-free](https://redis.com/try-free/)
+2. Create a new database
+3. Get your connection details by clicking "Connect" → "Redis CLI"
+4. Note the connection string format: `redis://default:password@host:port`
 
-In the RDI configuration interface, create a new pipeline with this configuration:
+### 2.2 Configure RDI Pipeline
 
-```yaml
-# config.yaml
-targets:
-  target:
-    connection:
-      type: redis
-      host: <your-redis-cloud-endpoint>
-      port: <your-redis-port>
-      password: <your-redis-password>
-      # Add SSL configuration if required
-      ssl: true
-
-sources:
-  postgres_music:
-    type: cdc
-    logging:
-      level: info
-    connection:
-      type: postgresql
-      host: <your-public-ip>  # Your machine's public IP
-      port: 5432
-      database: chinook
-      user: postgres
-      password: postgres
-```
-
-**💡 Important Notes**:
-- Replace `<your-redis-cloud-endpoint>`, `<your-redis-port>`, and `<your-redis-password>` with your actual Redis Cloud details
-- Replace `<your-public-ip>` with your machine's public IP address (you can find this by running `curl ifconfig.me`)
-- Ensure your firewall allows connections on port 5432
-
-### 2.3 Create the Job Configuration
-
-Create a job to migrate track data with transformations:
-
-```yaml
-# jobs/track_migration.yaml
-source:
-  table: Track
-
-transform:
-  # Add a new field with uppercase track name
-  - uses: add_field
-    with:
-      field: NameUpper
-      expression: upper("Name")
-      language: sql
-
-  # Filter to only include Rock and Metal tracks (GenreId 1 and 2)
-  - uses: filter
-    with:
-      expression: "GenreId" IN (1, 2)
-      language: sql
-
-  # Add a price category field
-  - uses: add_field
-    with:
-      field: PriceCategory
-      expression: |
-        CASE
-          WHEN "UnitPrice" < 1.00 THEN 'Budget'
-          WHEN "UnitPrice" < 1.50 THEN 'Standard'
-          ELSE 'Premium'
-        END
-      language: sql
-
-output:
-  - uses: redis.write
-    with:
-      connection: target
-      key:
-        expression: concat('track:', "TrackId")
-        language: sql
-      value:
-        expression: to_json(.)
-        language: sql
-```
-
-## 📊 Step 3: Deploy and Test the Pipeline
-
-### 3.1 Deploy the Pipeline
-
-1. In the RDI interface, deploy your pipeline
-2. Monitor the deployment status
-3. Check for any configuration errors
-
-### 3.2 Verify the Migration
-
-Once deployed, verify that data is being migrated:
-
-1. **Check Redis Cloud**: Use RedisInsight or the Redis CLI to verify data:
-   ```bash
-   # Connect to your Redis Cloud instance
-   redis-cli -h <your-endpoint> -p <your-port> -a <your-password>
-
-   # Check for migrated tracks
-   KEYS track:*
-
-   # Examine a specific track
-   JSON.GET track:1
-   ```
-
-2. **Expected Output**: You should see JSON objects with track data including the new fields:
-   ```json
-   {
-     "TrackId": 1,
-     "Name": "For Those About To Rock (We Salute You)",
-     "NameUpper": "FOR THOSE ABOUT TO ROCK (WE SALUTE YOU)",
-     "AlbumId": 1,
-     "GenreId": 1,
-     "Composer": "Angus Young, Malcolm Young, Brian Johnson",
-     "Milliseconds": 343719,
-     "Bytes": 11170334,
-     "UnitPrice": 0.99,
-     "PriceCategory": "Budget"
-   }
-   ```
-
-### 3.3 Test Real-time Updates
-
-Generate some new data to test real-time synchronization:
+Access the RDI CLI container and configure the pipeline:
 
 ```bash
-# Run the load generator to add new tracks
-docker-compose exec loadgen python generate_load.py --batch 5
+# Enter the RDI CLI container
+docker exec -it rdi-ctf-cli bash
+
+# Copy the configuration template
+cp /config/config.yaml.template /config/config.yaml
+
+# Edit the configuration with your Redis Cloud details
+nano /config/config.yaml
 ```
 
-Check if the new tracks appear in Redis Cloud (only Rock/Metal tracks should appear due to our filter).
+Update the configuration with your Redis Cloud connection details:
+
+```yaml
+connections:
+  target:
+    type: redis
+    host: your-redis-host.redns.redis-cloud.com
+    port: your-port-number
+    password: your-password
+    username: default
+    tls: true
+    tls_skip_verify: true
+
+  source:
+    type: postgresql
+    host: postgresql
+    port: 5432
+    database: musicstore
+    user: postgres
+    password: postgres
+    logical_replication: true
+source:
+  connection: source
+  tables:
+    - name: "Track"
+      key_pattern: "track:${TrackId}"
+      columns: "*"
+
+applier:
+  batch: 100
+  duration: 100
+  error_handling: dlq
+  target_data_type: hash
+
+transforms:
+  - name: add_uppercase_name
+    type: add_field
+    table: "Track"
+    field: "NameUpper"
+    value: "${upper(Name)}"
+
+  - name: add_price_category
+    type: add_field
+    table: "Track"
+    field: "PriceCategory"
+    value: "${UnitPrice < 1.00 ? 'Budget' : UnitPrice < 1.50 ? 'Standard' : 'Premium'}"
+```
+
+### 2.3 Deploy and Start RDI Pipeline
+
+Deploy the configuration and start the pipeline:
+
+```bash
+# Deploy the RDI configuration
+redis-di deploy --config /config/config.yaml
+
+# Start the pipeline
+redis-di start
+
+# Check the status
+redis-di status
+```
+
+**🔍 Expected Output**: You should see the pipeline status as "running" and no errors.
+## 📊 Step 3: Verify the Migration
+
+### 3.1 Check RDI Status
+
+Monitor your RDI pipeline:
+
+```bash
+# Check pipeline status
+redis-di status
+
+# View logs
+redis-di logs
+
+# List deployed configurations
+redis-di list
+```
+
+### 3.2 Verify Data in Redis Cloud
+
+Use Redis Insight to verify the migration:
+
+1. **Open Redis Insight**: http://localhost:5540
+2. **Add your Redis Cloud database** using your connection details
+3. **Browse the data**: Look for keys with pattern `track:*`
+4. **Examine a track**: Click on `track:1` to see the migrated data
+
+**Expected Data Structure**: You should see hash data with fields like:
+- `TrackId`: 1
+- `Name`: "For Those About To Rock (We Salute You)"
+- `NameUpper`: "FOR THOSE ABOUT TO ROCK (WE SALUTE YOU)"
+- `AlbumId`: 1
+- `GenreId`: 1
+- `Composer`: "Angus Young, Malcolm Young, Brian Johnson"
+- `PriceCategory`: "Budget"
+
+### 3.3 Test with Load Generator
+
+Generate new data to test the pipeline:
+
+```bash
+# Start the load generator
+docker exec -it rdi-ctf-loadgen python /scripts/generate_load.py
+
+# Let it run for 30 seconds, then stop with Ctrl+C
+```
+
+Check Redis Insight to see if new tracks appear in real-time.
 
 ## 🎯 Step 4: Capture the Flag
 
@@ -227,12 +221,25 @@ To complete this lab, verify that:
 
 Query the PostgreSQL database for your flag:
 
-```sql
--- In SQLPad, run this query:
+```bash
+# Connect to PostgreSQL
+docker exec -it rdi-ctf-postgres psql -U postgres -d musicstore
+
+# Get your flag
 SELECT flag_value FROM ctf_flags WHERE lab_id = '01';
+
+# Exit
+\q
 ```
 
 **🏁 Flag**: `RDI{pg_to_redis_snapshot_success}`
+
+**Alternative**: Check if the flag was synced to Redis:
+```bash
+# In Redis Insight, look for key: flag:01
+# Or use Redis CLI in your Redis Cloud instance:
+GET flag:01
+```
 
 ## 🧠 Key Concepts Learned
 
@@ -246,20 +253,25 @@ SELECT flag_value FROM ctf_flags WHERE lab_id = '01';
 
 ### Common Issues:
 
-1. **Connection Failed**:
-   - Verify your public IP address
-   - Check firewall settings for port 5432
-   - Ensure PostgreSQL is accepting external connections
+1. **RDI Connection Failed**:
+   - Verify Redis Cloud connection details in config.yaml
+   - Check if TLS is properly configured
+   - Test Redis connection manually: `redis-cli -u your-redis-url ping`
 
 2. **No Data in Redis**:
-   - Check RDI pipeline status
-   - Verify filter conditions aren't too restrictive
-   - Review RDI logs for errors
+   - Check RDI pipeline status: `redis-di status`
+   - Review RDI logs: `redis-di logs`
+   - Verify PostgreSQL connection from RDI container
 
-3. **Transformation Errors**:
-   - Validate SQL syntax in transformation expressions
-   - Check data types and field names
-   - Test transformations with sample data
+3. **Configuration Errors**:
+   - Validate YAML syntax in config.yaml
+   - Check table names match exactly (case-sensitive)
+   - Ensure all required fields are present
+
+4. **Container Issues**:
+   - Restart containers: `docker-compose restart`
+   - Check container logs: `docker logs rdi-ctf-cli`
+   - Verify all containers are running: `docker ps`
 
 ## 🎉 Congratulations!
 

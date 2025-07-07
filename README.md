@@ -11,161 +11,184 @@ Welcome to the **Redis Data Integration (RDI) Capture The Flag** challenge! This
 
 ## 🐳 Quick Start (Docker - Recommended)
 
-**The easiest and safest way to run the CTF!** Everything is containerized - no system changes required.
+**Professional multi-container setup modeled after Redis RDI training environment!**
 
 ### **Prerequisites**
 - **Docker**: 20.10+ with Docker Compose
-- **RAM**: 2GB minimum, 4GB recommended
-- **Disk**: ~1GB free space
-- **Port**: 8080 available
+- **RAM**: 4GB minimum, 8GB recommended
+- **Disk**: ~2GB free space
+- **Ports**: 5432, 5540, 8080 available
+- **Redis Cloud Account**: Free at [redis.com/try-free](https://redis.com/try-free/)
 
-### **🎯 Smart Startup (Recommended)**
+### **🎯 Quick Setup**
 ```bash
-# Clone and start with optimal experience
+# Clone the repository
 git clone https://github.com/Cammer15m/Redis_RDI_CTF
 cd Redis_RDI_CTF
 
-# Interactive startup with Redis configuration
+# Start all services
 ./start_ctf.sh
 
-# The script will:
-# ✅ Prompt for Redis Cloud or local Redis choice
-# ✅ Collect Redis Cloud credentials if needed
-# ✅ Auto-configure .env file
-# ✅ Show startup logs for verification
-# ✅ Keep container running in background if successful
+# The script will start:
+# ✅ PostgreSQL with music store data
+# ✅ Redis Insight for RDI configuration
+# ✅ RDI CLI container for management
+# ✅ Load generator for testing
+# ✅ Web interface with instructions
 ```
 
-### **Manual Configuration (Alternative)**
+### **🌐 Service Access**
+- **CTF Dashboard**: http://localhost:8080
+- **Redis Insight**: http://localhost:5540
+- **PostgreSQL**: localhost:5432 (musicstore/postgres/postgres)
 
-**Option 1: Redis Cloud**
+### **🔧 Configure RDI**
 ```bash
-# Get free account at redis.com, then edit .env:
-# REDIS_URL=redis://default:password@redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com:17173
+# 1. Copy configuration template
+docker exec -it rdi-ctf-cli cp /config/config.yaml.template /config/config.yaml
 
-docker-compose up -d --build
-open http://localhost:8080
+# 2. Edit with your Redis Cloud details
+docker exec -it rdi-ctf-cli nano /config/config.yaml
+
+# 3. Deploy RDI configuration
+docker exec -it rdi-ctf-cli redis-di deploy --config /config/config.yaml
+
+# 4. Start the pipeline
+docker exec -it rdi-ctf-cli redis-di start
 ```
-
-**Option 2: Local Redis**
+### **🧪 Testing & Load Generation**
 ```bash
-# Edit .env to use local Redis:
-# Comment out: REDIS_URL=...
-# Uncomment: REDIS_HOST=localhost, REDIS_PORT=6379, REDIS_PASSWORD=
+# Generate test data for CDC testing
+docker exec -it rdi-ctf-loadgen python /scripts/generate_load.py
 
-docker-compose --profile local-redis up -d --build
-open http://localhost:8080
+# Check RDI status
+docker exec -it rdi-ctf-cli redis-di status
+
+# View RDI logs
+docker exec -it rdi-ctf-cli redis-di logs
 ```
 
 ## 🛑 Stopping the CTF
 
-### **Easy Stop (Recommended)**
 ```bash
 # Stop all CTF containers safely
 ./stop_ctf.sh
 
-# The script will:
-# ✅ Stop all running containers gracefully
-# ✅ Verify containers are stopped
-# ✅ Clean up stopped containers
-# ✅ Provide restart instructions
-```
-
-### **Manual Stop Commands**
-```bash
-# Stop containers
+# Or manually
 docker-compose down
 
-# Stop and remove all data
+# Remove all data
 docker-compose down -v
-
-# Force stop if needed
-docker stop redis-rdi-ctf
 ```
 
-## 🎮 What's Included
+## 🎮 Architecture
 
-### **Single Container Includes:**
-- ✅ **PostgreSQL** with sample music database (3,494+ tracks)
-- ✅ **Python environment** with all dependencies
-- ✅ **RDI connector scripts** for data synchronization
-- ✅ **Web monitoring interface** (http://localhost:8080)
-- ✅ **All lab materials** and CTF challenges
-- ✅ **Flag validation system**
-- ✅ **Database access** via container shell
+### **Multi-Container Setup:**
+- 🗄️ **PostgreSQL Container**: Music store database with sample data
+- 🔍 **Redis Insight Container**: RDI configuration and monitoring
+- ⚙️ **RDI CLI Container**: Redis Data Integration management
+- 📊 **Load Generator Container**: Test data generation
+- 🌐 **Web Interface Container**: CTF instructions and dashboard
 
-### **External (Your Choice):**
-- 🔗 **Redis** - Use Redis Cloud (recommended) or local Redis
+### **External Requirements:**
+- 🔗 **Redis Cloud**: Your target Redis database (free account)
 
 ## 🚀 Getting Started
 
-### **1. Start the Container**
+### **1. Prerequisites Setup**
 ```bash
-# Quick test build
-./build_and_test.sh
-
-# Or manual start
-docker-compose up --build
+# Sign up for Redis Cloud (free)
+# Visit: https://redis.com/try-free/
+# Create a database and get connection details
 ```
 
-### **2. Configure Redis Connection**
-Edit `.env` file:
+### **2. Start the Environment**
 ```bash
-# For Redis Cloud (recommended)
-REDIS_URL=redis://username:password@host:port
-
-# Or for local Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
+./start_ctf.sh
 ```
 
-### **3. Begin Lab 1**
+### **3. Configure RDI**
 ```bash
-# Enter the container
-docker exec -it redis-rdi-ctf bash
+# Copy and edit RDI configuration
+docker exec -it rdi-ctf-cli cp /config/config.yaml.template /config/config.yaml
+docker exec -it rdi-ctf-cli nano /config/config.yaml
 
-# Navigate to Lab 1
-cd labs/01_postgres_to_redis
-cat README.md
-
-# Start RDI connector
-cd /app/scripts
-python3 rdi_connector.py
+# Update with your Redis Cloud details:
+# host: your-redis-host.redns.redis-cloud.com
+# port: your-port
+# password: your-password
 ```
 
-### **4. Monitor Your Progress**
-- **Web UI**: http://localhost:8080
-- **Flag Checker**: `python3 scripts/check_flags.py`
-- **Database Access**: `docker exec -it redis-rdi-ctf psql -U rdi_user -d rdi_db`
+### **4. Deploy and Start RDI**
+```bash
+# Deploy configuration
+docker exec -it rdi-ctf-cli redis-di deploy --config /config/config.yaml
+
+# Start the pipeline
+docker exec -it rdi-ctf-cli redis-di start
+
+# Check status
+docker exec -it rdi-ctf-cli redis-di status
+```
+
+### **5. Begin Labs**
+- **Web Dashboard**: http://localhost:8080
+- **Redis Insight**: http://localhost:5540
+- **Follow lab instructions** in the web interface
 
 ## 🏗️ Architecture
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   PostgreSQL    │───▶│   RDI Connector │───▶│   Redis Cloud   │
-│  (Container)    │    │  (Container)    │    │   (Your DB)     │
+│   PostgreSQL    │───▶│   Redis RDI     │───▶│   Redis Cloud   │
+│   Container     │    │   Container     │    │   (Your DB)     │
+│  (musicstore)   │    │   (CLI/Mgmt)    │    │                 │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                        ▲
          │                       │                        │
          ▼                       ▼                        │
 ┌─────────────────┐    ┌─────────────────┐                │
-│    SQLPad       │    │   Web Monitor   │────────────────┘
-│  (Container)    │    │  (Container)    │
+│  Load Generator │    │  Redis Insight  │────────────────┘
+│   Container     │    │   Container     │
+│  (Test Data)    │    │ (Configuration) │
 └─────────────────┘    └─────────────────┘
+         │                       │
+         ▼                       ▼
+┌─────────────────────────────────────────┐
+│           Web Interface                 │
+│          (Instructions)                 │
+└─────────────────────────────────────────┘
 ```
 
 **Components:**
-- **🐳 Container**: PostgreSQL, RDI Connector, Web UI, SQLPad
-- **☁️ External**: Redis Cloud (or local Redis)
-- **🔗 Integration**: Custom RDI simulation handles real-time sync
+- **🗄️ PostgreSQL**: Source database with music store data
+- **⚙️ RDI CLI**: Real Redis RDI for data integration
+- **🔍 Redis Insight**: Configuration and monitoring interface
+- **📊 Load Generator**: Creates test data for CDC
+- **🌐 Web Interface**: CTF instructions and dashboard
+- **☁️ Redis Cloud**: Your target Redis database
 
 ## 📚 Lab Overview
 
 | Lab | Topic | Difficulty | Estimated Time |
 |-----|-------|------------|----------------|
-| **01** | PostgreSQL → Redis (Snapshot) | 🟢 Beginner | 15 minutes |
-| **02** | Snapshot vs CDC | 🟡 Intermediate | 25 minutes |
-| **03** | Advanced RDI Features | 🟠 Advanced | 20 minutes |
+| **01** | PostgreSQL → Redis (Snapshot) | 🟢 Beginner | 20 minutes |
+| **02** | Change Data Capture (CDC) | 🟡 Intermediate | 30 minutes |
+| **03** | Advanced Transformations | 🟠 Advanced | 25 minutes |
+
+## 🧪 Testing & Validation
+
+### **Quick Validation**
+```bash
+# Validate setup without Docker
+./validate_setup.sh
+```
+
+### **Full Integration Test**
+```bash
+# Complete test with Docker (requires Docker installed)
+./integration_test.sh
+```
 
 ## 🎮 CTF Flags
 
@@ -355,44 +378,59 @@ Found an issue or want to improve the labs? Contributions welcome!
 ## 🚀 Quick Reference
 
 ```bash
-# Start CTF (interactive setup)
+# Start CTF environment
 ./start_ctf.sh
 
-# Stop CTF (safe shutdown)
+# Stop CTF environment
 ./stop_ctf.sh
 
-# Access web interface
-open http://localhost:8080
+# Validate setup
+./validate_setup.sh
 
-# View logs
-docker logs redis-rdi-ctf
+# Full integration test
+./integration_test.sh
 ```
 
 ## 🐳 Container Access
 
 ```bash
-# Enter container shell
-docker exec -it redis-rdi-ctf bash
-
-# Run Python scripts inside container
-docker exec -it redis-rdi-ctf python3 scripts/rdi_connector.py
-
 # Access PostgreSQL database
-docker exec -it redis-rdi-ctf psql -U rdi_user -d rdi_db
+docker exec -it rdi-ctf-postgres psql -U postgres -d musicstore
 
-# Test Redis connection from container
-docker exec -it redis-rdi-ctf python3 -c "
-import redis, os
-r = redis.from_url(os.getenv('REDIS_URL'))
-print('Redis ping:', r.ping())
-"
+# Access RDI CLI for pipeline management
+docker exec -it rdi-ctf-cli bash
+docker exec -it rdi-ctf-cli redis-di status
 
-# View environment variables
-docker exec -it redis-rdi-ctf env | grep REDIS
+# Run load generator for testing
+docker exec -it rdi-ctf-loadgen python /scripts/generate_load.py
 
-# Check running processes
-docker exec -it redis-rdi-ctf ps aux
+# View container logs
+docker logs rdi-ctf-postgres
+docker logs rdi-ctf-cli
+docker logs rdi-ctf-insight
+docker logs rdi-ctf-web
+
+# Check all CTF containers
+docker ps | grep rdi-ctf
 ```
+
+## 🎯 What's New in This Version
+
+This Redis RDI CTF has been completely refactored to provide a **professional, production-like experience**:
+
+### **✨ Key Improvements**
+- **🏗️ Multi-Container Architecture**: Separate containers for each service (PostgreSQL, RDI CLI, Redis Insight, Load Generator, Web Interface)
+- **⚙️ Real Redis RDI**: Uses actual Redis RDI CLI instead of simulation
+- **🔍 Redis Insight Integration**: Professional RDI configuration and monitoring interface
+- **📊 Advanced Load Generation**: Realistic data generation for CDC testing
+- **🌐 Enhanced Web Interface**: Comprehensive instructions and dashboard
+- **🧪 Comprehensive Testing**: Validation and integration test scripts
+
+### **🎓 Learning Benefits**
+- **Real-world Skills**: Learn actual Redis RDI, not just concepts
+- **Professional Tools**: Use the same tools used in production environments
+- **Hands-on Experience**: Configure real data pipelines with Redis Cloud
+- **Best Practices**: Follow industry-standard deployment patterns
 
 ## 📄 License
 

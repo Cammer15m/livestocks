@@ -1,25 +1,82 @@
 services:
-  # Redis RDI CTF - All-in-one container
-  redis-rdi-ctf:
-    build: .
-    container_name: redis-rdi-ctf
+  # PostgreSQL database with CTF music data
+  postgresql:
+    image: 'postgres:15.3-bullseye'
+    container_name: rdi-ctf-postgres
     ports:
-      - "8080:8080"   # RDI Web UI (main interface)
-    volumes:
-      - ./labs:/app/labs
-      - ./scripts:/app/scripts
-      - ./.env:/app/.env
-      - ctf_data:/var/lib/postgresql/14/main
+      - '5432:5432'
     environment:
-      - POSTGRES_USER=rdi_user
-      - POSTGRES_PASSWORD=rdi_password
-      - POSTGRES_DB=rdi_db
+      - POSTGRES_DB=musicstore
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - ./seed/music_database.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "rdi_user", "-d", "rdi_db", "-h", "localhost"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      test: ["CMD-SHELL", "pg_isready -U postgres -d musicstore"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Insight for RDI configuration and monitoring
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: rdi-ctf-insight
+    ports:
+      - '5540:5540'
+    volumes:
+      - redisinsight_data:/data
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # RDI CLI container for configuration and management
+  rdi-cli:
+    image: redislabs/redis-di-cli:latest
+    container_name: rdi-ctf-cli
+    volumes:
+      - ./rdi-config:/config
+      - ./scripts:/scripts
+    working_dir: /config
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    command: tail -f /dev/null  # Keep container running
+    restart: unless-stopped
+
+  # Load generator for testing RDI sync
+  load-generator:
+    build:
+      context: .
+      dockerfile: Dockerfile.loadgen
+    container_name: rdi-ctf-loadgen
+    volumes:
+      - ./scripts:/scripts
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=postgresql
+      - DB_PORT=5432
+      - DB_NAME=musicstore
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+    restart: unless-stopped
+    command: tail -f /dev/null  # Keep container running, start load generation manually
+
+  # Web interface for CTF instructions and monitoring
+  web-interface:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: rdi-ctf-web
+    ports:
+      - '8080:80'
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+      - ./labs:/usr/share/nginx/html/labs:ro
     restart: unless-stopped
 
   # Optional: Local Redis for testing (users can use Redis Cloud instead)
@@ -41,7 +98,9 @@ services:
       - local-redis
 
 volumes:
-  ctf_data:
+  postgres_data:
+    driver: local
+  redisinsight_data:
     driver: local
   redis_data:
     driver: local

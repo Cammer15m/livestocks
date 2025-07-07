@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redis RDI CTF - Capture The Flag</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .services {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .service {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+        .service h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .service a {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+        .service a:hover {
+            background: #5a6fd8;
+        }
+        .labs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .lab {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #28a745;
+        }
+        .lab h3 {
+            color: #28a745;
+            margin-bottom: 10px;
+        }
+        .lab .difficulty {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .difficulty.beginner { background: #d4edda; color: #155724; }
+        .difficulty.intermediate { background: #fff3cd; color: #856404; }
+        .difficulty.advanced { background: #f8d7da; color: #721c24; }
+        .status {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .code {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Redis RDI CTF</h1>
+            <p>Master Redis Data Integration through hands-on challenges</p>
+        </div>
+
+        <div class="card">
+            <h2>🎯 Welcome to the Redis RDI Capture The Flag!</h2>
+            <p>This CTF environment teaches you Redis RDI (Redis Data Integration) through practical, hands-on labs. You'll learn to:</p>
+            <ul>
+                <li>Set up data pipelines from PostgreSQL to Redis</li>
+                <li>Configure Change Data Capture (CDC) for real-time sync</li>
+                <li>Apply transformations and filters to your data</li>
+                <li>Monitor and troubleshoot RDI pipelines</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>🛠️ Services & Tools</h2>
+            <div class="services">
+                <div class="service">
+                    <h3>🔍 Redis Insight</h3>
+                    <p>Configure and monitor your RDI pipelines</p>
+                    <a href="http://localhost:5540" target="_blank">Open Redis Insight</a>
+                </div>
+                <div class="service">
+                    <h3>🗄️ PostgreSQL</h3>
+                    <p>Source database with music store data</p>
+                    <div class="code">
+                        Host: postgresql<br>
+                        Port: 5432<br>
+                        Database: musicstore<br>
+                        User: postgres<br>
+                        Password: postgres
+                    </div>
+                </div>
+                <div class="service">
+                    <h3>⚙️ RDI CLI</h3>
+                    <p>Command-line interface for RDI management</p>
+                    <div class="code">docker exec -it rdi-ctf-cli bash</div>
+                </div>
+                <div class="service">
+                    <h3>📊 Load Generator</h3>
+                    <p>Generate test data for CDC testing</p>
+                    <div class="code">docker exec -it rdi-ctf-loadgen python /scripts/generate_load.py</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🏁 CTF Labs</h2>
+            <div class="labs">
+                <div class="lab">
+                    <h3>Lab 01: PostgreSQL to Redis Snapshot</h3>
+                    <span class="difficulty beginner">Beginner</span>
+                    <p>Learn the basics of RDI by performing a one-time snapshot migration from PostgreSQL to Redis.</p>
+                    <p><strong>Goal:</strong> Successfully migrate all music store data to Redis</p>
+                    <p><strong>Flag:</strong> <code>RDI{pg_to_redis_snapshot_success}</code></p>
+                </div>
+                <div class="lab">
+                    <h3>Lab 02: Change Data Capture (CDC)</h3>
+                    <span class="difficulty intermediate">Intermediate</span>
+                    <p>Set up real-time data synchronization using Change Data Capture to stream changes from PostgreSQL to Redis.</p>
+                    <p><strong>Goal:</strong> Configure CDC and verify real-time sync</p>
+                    <p><strong>Flag:</strong> <code>RDI{cdc_streaming_master}</code></p>
+                </div>
+                <div class="lab">
+                    <h3>Lab 03: Advanced Transformations</h3>
+                    <span class="difficulty advanced">Advanced</span>
+                    <p>Apply advanced data transformations, filters, and custom logic to your RDI pipeline.</p>
+                    <p><strong>Goal:</strong> Implement complex transformations</p>
+                    <p><strong>Flag:</strong> <code>RDI{transformation_ninja}</code></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🚀 Getting Started</h2>
+            <div class="status">
+                <h3>Prerequisites</h3>
+                <ol>
+                    <li><strong>Redis Cloud Account:</strong> Sign up at <a href="https://redis.com/try-free/" target="_blank">redis.com/try-free</a></li>
+                    <li><strong>Create Redis Database:</strong> Create a new database in Redis Cloud</li>
+                    <li><strong>Get Connection Details:</strong> Click "Connect" → "Redis CLI" to get your connection string</li>
+                </ol>
+            </div>
+            
+            <h3>Step 1: Configure RDI</h3>
+            <div class="code">
+# Copy the RDI configuration template<br>
+docker exec -it rdi-ctf-cli cp /config/config.yaml.template /config/config.yaml<br><br>
+# Edit with your Redis Cloud details<br>
+docker exec -it rdi-ctf-cli nano /config/config.yaml
+            </div>
+
+            <h3>Step 2: Start Your First Lab</h3>
+            <p>Visit the <a href="/labs/">Labs Directory</a> to access detailed instructions for each challenge.</p>
+        </div>
+
+        <div class="card">
+            <h2>📚 Resources</h2>
+            <ul>
+                <li><a href="https://redis.io/docs/data-integration/" target="_blank">Redis RDI Documentation</a></li>
+                <li><a href="https://redis.io/docs/data-integration/quickstart/" target="_blank">RDI Quick Start Guide</a></li>
+                <li><a href="https://redis.io/docs/data-integration/reference/" target="_blank">RDI Configuration Reference</a></li>
+                <li><a href="/labs/">Lab Instructions</a></li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
