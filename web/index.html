@@ -77,7 +77,13 @@
         <p><strong>Step 3:</strong> Create RDI Pipeline in Redis Insight</p>
         <ul>
             <li>Go to "Redis Data Integration" tab</li>
-            <li>Click "+ Endpoint" and configure: URL: https://localhost:13000</li>
+            <li>Click "+ Endpoint" and configure:</li>
+            <ul>
+                <li>RDI Alias: rdi_cloud_pipeline</li>
+                <li>URL: https://localhost:13000</li>
+                <li>Username: default</li>
+                <li>Password: redislabs</li>
+            </ul>
             <li>Create new pipeline with config targeting your Redis Cloud</li>
             <li>Create Track table job with transformations (NameUpper field, GenreId=1 filter)</li>
             <li>Deploy pipeline</li>
