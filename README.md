@@ -15,9 +15,20 @@ Welcome to the **Redis Data Integration (RDI) Capture The Flag** challenge! This
 
 ### **Prerequisites**
 - **Docker**: 20.10+ with Docker Compose
+- **Python 3**: With `redis` library (`pip3 install redis`)
 - **RAM**: 2GB minimum, 4GB recommended
 - **Disk**: ~1GB free space
 - **Port**: 8080 available
+
+**Quick Setup:**
+```bash
+# Install Python Redis library (for connection testing)
+pip3 install redis
+
+# Or on Ubuntu/Debian:
+sudo apt install python3-pip
+pip3 install redis
+```
 
 ### **🎯 Smart Startup (Recommended)**
 ```bash

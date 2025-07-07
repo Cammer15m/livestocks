@@ -40,24 +40,9 @@ if grep -q "REDIS_URL=redis://default:password@redis-17173" .env; then
         echo "✅ Redis Cloud configuration saved to .env"
         echo ""
 
-        # Test Redis connection
+        # Test Redis connection using Python
         echo "🔍 Testing Redis connection..."
-        if command -v redis-cli >/dev/null 2>&1; then
-            # Use redis-cli if available
-            echo "   (Using redis-cli...)"
-            if timeout 10 redis-cli -u "$redis_url" ping >/dev/null 2>&1; then
-                echo "✅ Redis connection successful!"
-                echo ""
-            else
-                echo "❌ Failed to connect to Redis Cloud!"
-                echo "   Please check your connection string and try again."
-                echo "   Make sure your Redis Cloud instance is running."
-                exit 1
-            fi
-        else
-            # Try Python with timeout and better error handling
-            echo "   (Using Python to test connection...)"
-            if timeout 10 python3 -c "
+        if timeout 10 python3 -c "
 import sys
 try:
     import redis
@@ -69,21 +54,19 @@ try:
         print('❌ Redis ping failed!')
         sys.exit(1)
 except ImportError:
-    print('⚠️  Redis library not available on host system.')
-    print('   Connection will be tested after container starts.')
+    print('❌ Python redis library not installed!')
+    print('   Please install: pip3 install redis')
+    print('   Or see README for prerequisites.')
+    sys.exit(1)
 except Exception as e:
     print('❌ Failed to connect to Redis Cloud!')
     print(f'   Error: {str(e)}')
     print('   Please check your connection string and try again.')
     sys.exit(1)
-" 2>/dev/null; then
-                echo ""
-            else
-                # If Python test fails, warn but continue (will test in container)
-                echo "⚠️  Could not test Redis connection on host system."
-                echo "   Connection will be verified after container starts."
-                echo ""
-            fi
+"; then
+            echo ""
+        else
+            exit 1
         fi
 
     elif [ "$redis_option" = "2" ]; then
