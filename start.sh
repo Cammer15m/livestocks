@@ -100,8 +100,7 @@ envsubst < ./prometheus/prometheus.yml.template > ./prometheus/prometheus.yml 2>
 complete_step 2 "Services configured"
 
 # Step 3: Starting Docker containers
-show_progress 3 10 "Starting Docker containers..."
-sleep 1
+show_progress 3 10 "Starting Docker containers (this may take 2-3 minutes)..."
 
 #Total hack.  There are instances where /snap/bin is not ready before docker-compose leading to error
 #So sleep a little.
@@ -110,8 +109,21 @@ while [ ! -x /snap/bin ]; do
     sleep 5
 done
 
+echo ""
+echo "Building and starting containers... (Redis Enterprise container needs to be built)"
 docker-compose up -d --build
-complete_step 3 "Docker containers started"
+
+echo "Waiting for containers to be ready..."
+sleep 10
+
+# Wait for Redis Enterprise container to be running
+echo "Checking Redis Enterprise container status..."
+while ! docker ps | grep -q "re-n1.*Up"; do
+    echo "  Redis Enterprise container still starting..."
+    sleep 10
+done
+
+complete_step 3 "Docker containers started and ready"
 
 # Step 4: Configuring Redis Enterprise
 show_progress 4 10 "Configuring Redis Enterprise..."
