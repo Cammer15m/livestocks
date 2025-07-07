@@ -1,4 +1,4 @@
-version: '2'
+version: '3.8'
 services:
   grafana:
     image: grafana/grafana
@@ -16,9 +16,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-    networks:
-      default:
-        ipv4_address: 172.16.22.10
+
   docs:
     image: httpd:2.4.63
     container_name: docs
@@ -28,13 +26,13 @@ services:
       - HOST_IP=${HOST_IP}
       - DOMAIN=${DOMAIN}
     depends_on:
-      grafana:
-        condition: service_healthy 
+      - grafana
     ports:
       - '9080:80'
     volumes:
       - './dist/client:/usr/local/apache2/htdocs/'
       - './httpd.conf:/usr/local/apache2/conf/httpd.conf'
+
   prometheus:
     image: prom/prometheus
     container_name: prometheus
@@ -42,13 +40,8 @@ services:
       - './prometheus/:/etc/prometheus/'
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
-    dns:
-      - 172.16.22.20
     ports:
       - '9090:9090'        
-    networks:
-      default:
-        ipv4_address: 172.16.22.12
 
   redis-insight-2:
     image: redis/redisinsight:latest
@@ -57,13 +50,9 @@ services:
       - re-n1
     ports:
       - '5540:5540'
-    dns:
-      - 172.16.22.20
     volumes:
       - './redisinsight.db:/root/.redisinsight-v2-stage/redisinsight.db'
-    networks:
-      default:
-        ipv4_address: 172.16.22.13
+
   app:
     privileged: true
     build:
@@ -72,15 +61,10 @@ services:
     container_name: app
     ports:
       - '8081:8081'    
-    extra_hosts:
-      - 'redis:172.16.22.21'
     environment:
       - REDIS_TARGET_DB_HOST=re-n1
     volumes:
       - './from-repo/app:/app'
-    networks:
-      default:
-        ipv4_address: 172.16.22.14
 
   dozzle:
     container_name: dozzle
@@ -89,9 +73,6 @@ services:
       - '8080:8080'
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'
-    networks:
-      default:
-        ipv4_address: 172.16.22.15
 
   re-n1:
     image: redislabs/redis-enterprise:latest
@@ -101,33 +82,23 @@ services:
       - sys_resource
       - net_admin
     privileged: true
-    dns:
-      - 172.16.22.20
     ports:
       - '14092:14092'
       - '12000:12000'
       - '12001:12001'
       - '8443:8443'
-    networks:
-      default:
-        ipv4_address: 172.16.22.21
 
   postgresql:
     image: 'postgres:15.3-bullseye'
     container_name: postgresql
     ports:
       - '5432:5432'
-    networks:
-      default:
-        ipv4_address: 172.16.22.7
-    dns:
-      - 172.16.22.20
     environment:
       - POSTGRES_DB=chinook
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     volumes:
-      - ./create_track_table.sql:/docker-entrypoint-initdb.d/create_track_table.sql
+      - './create_track_table.sql:/docker-entrypoint-initdb.d/create_track_table.sql'
     restart: unless-stopped
 
   postgres-exporter:
@@ -138,11 +109,6 @@ services:
     links:
       - postgresql
       - prometheus
-    networks:
-      default:
-        ipv4_address: 172.16.22.23
-    dns:
-      - 172.16.22.20
 
   sqlpad:
     image: 'sqlpad/sqlpad:6'
@@ -161,9 +127,6 @@ services:
       SQLPAD_CONNECTIONS__pgdemo__database: chinook
       SQLPAD_CONNECTIONS__pgdemo__username: postgres
       SQLPAD_CONNECTIONS__pgdemo__password: postgres
-    networks:
-      default:
-        ipv4_address: 172.16.22.17
 
   loadgen:
     image: loadgen
@@ -176,19 +139,4 @@ services:
       dockerfile: rdi.dockerfile
     volumes:
       - './from-repo/scripts/:/scripts/'
-      - './from-repo/ingest_config/:/home/labuser/ingest_config/'  
-    networks:
-      default:
-        ipv4_address: 172.16.22.18
-
-networks:
-  default:
-    driver: bridge
-    driver_opts:
-      com.docker.network.enable_ipv6: 'true'
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.16.22.0/24
-          gateway: 172.16.22.1
-
+      - './from-repo/ingest_config/:/home/labuser/ingest_config/'
