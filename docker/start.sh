@@ -3,23 +3,9 @@ set -e
 
 echo "🚀 Starting Redis RDI CTF Container..."
 
-# Initialize PostgreSQL if needed
-if [ ! -f /var/lib/postgresql/14/main/PG_VERSION ]; then
-    echo "📊 Initializing PostgreSQL..."
-    # Ensure proper ownership of data directory
-    mkdir -p /var/lib/postgresql/14/main
-    chown -R postgres:postgres /var/lib/postgresql/14
-    sudo -u postgres /usr/lib/postgresql/14/bin/initdb -D /var/lib/postgresql/14/main
-fi
-
-# Start PostgreSQL temporarily to set up database
-echo "🗄️ Starting PostgreSQL..."
-# Ensure proper ownership
-chown -R postgres:postgres /var/lib/postgresql/14
-# Create log file with proper permissions
-touch /var/log/postgresql.log
-chown postgres:postgres /var/log/postgresql.log
-sudo -u postgres /usr/lib/postgresql/14/bin/pg_ctl -D /var/lib/postgresql/14/main -l /var/log/postgresql.log start
+# Start PostgreSQL using service (simpler approach)
+echo "🗄️ Starting PostgreSQL service..."
+service postgresql start
 
 # Wait for PostgreSQL to be ready
 echo "⏳ Waiting for PostgreSQL to be ready..."
@@ -55,7 +41,7 @@ else
 fi
 
 # Stop PostgreSQL (supervisor will restart it)
-sudo -u postgres /usr/lib/postgresql/14/bin/pg_ctl -D /var/lib/postgresql/14/main stop
+service postgresql stop
 
 # Create .env file if it doesn't exist
 if [ ! -f /app/.env ]; then
