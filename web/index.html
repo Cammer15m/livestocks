@@ -62,17 +62,35 @@
 
     <div class="section">
         <h2>🧪 Lab Exercises</h2>
-        
-        <h3>Lab 1: Basic Data Sync</h3>
-        <p>Verify data is flowing from PostgreSQL to Redis Cloud:</p>
-        <div class="command">docker exec -it rdi-cli redis-di status</div>
-        
-        <h3>Lab 2: Monitor Data Flow</h3>
-        <p>Use Redis Insight to see your data in Redis Cloud. Add your Redis Cloud connection in Redis Insight.</p>
-        
-        <h3>Lab 3: Test Change Data Capture</h3>
-        <p>Make changes in PostgreSQL and watch them appear in Redis:</p>
-        <div class="command">docker exec -it rdi-postgres psql -U postgres -d chinook -c "INSERT INTO \"Track\" (\"TrackId\", \"Name\", \"AlbumId\", \"MediaTypeId\", \"GenreId\", \"UnitPrice\") VALUES (9999, 'Test Track', 1, 1, 1, 0.99);"</div>
+
+        <h3>Lab 1: Create RDI Pipeline in Redis Insight</h3>
+        <p><strong>Step 1:</strong> Validate PostgreSQL data in <a href="http://localhost:3001" target="_blank">SQLPad</a> (admin@rl.org / redislabs)</p>
+        <div class="command">SELECT * FROM "Track" ORDER BY "TrackId";</div>
+
+        <p><strong>Step 2:</strong> Connect your Redis Cloud database in <a href="http://localhost:5540" target="_blank">Redis Insight</a></p>
+        <ul>
+            <li>Click "+ Add Redis Database"</li>
+            <li>Enter your Redis Cloud connection details</li>
+            <li>Test connection and add database</li>
+        </ul>
+
+        <p><strong>Step 3:</strong> Create RDI Pipeline in Redis Insight</p>
+        <ul>
+            <li>Go to "Redis Data Integration" tab</li>
+            <li>Click "+ Endpoint" and configure: URL: https://localhost:13000</li>
+            <li>Create new pipeline with config targeting your Redis Cloud</li>
+            <li>Create Track table job with transformations (NameUpper field, GenreId=1 filter)</li>
+            <li>Deploy pipeline</li>
+        </ul>
+
+        <h3>Lab 2: Test Data Sync</h3>
+        <p>Insert test data in SQLPad and verify it appears in Redis Cloud:</p>
+        <div class="command">INSERT INTO "Track" ("TrackId", "Name", "AlbumId", "MediaTypeId", "GenreId", "Composer", "Milliseconds", "Bytes", "UnitPrice") VALUES (9999, 'Test Track', 1, 1, 1, 'Test Composer', 210000, 5000000, 0.99);</div>
+
+        <h3>Lab 3: Continuous Data Flow</h3>
+        <p>Generate continuous data to see real-time CDC:</p>
+        <div class="command">docker exec -it rdi-loadgen python /scripts/generate_load.py</div>
+        <p>Watch data flow in real-time between PostgreSQL and Redis Cloud.</p>
     </div>
 
     <div class="section">
