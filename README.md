@@ -68,6 +68,17 @@ docker exec -it rdi-ctf-cli redis-di status
 docker exec -it rdi-ctf-cli redis-di logs
 ```
 
+### **⚠️ Important: Clean Start**
+If you see an old web interface or errors, ensure you're using the new setup:
+```bash
+# Stop any old containers
+docker stop $(docker ps -q) 2>/dev/null || true
+docker system prune -f
+
+# Start fresh with new architecture
+./start_ctf.sh
+```
+
 ## 🛑 Stopping the CTF
 
 ```bash
