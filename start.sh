@@ -75,5 +75,3 @@ echo ""
 echo "🧪 Test data flow:"
 echo "   docker exec -w /scripts rdi-loadgen python3 generate_load.py"
 echo ""
-
-
