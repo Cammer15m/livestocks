@@ -91,14 +91,14 @@ services:
       postgresql:
         condition: service_healthy
 
-  # Web interface serving live repo content
+  # Web interface for instructions
   web:
     image: nginx:alpine
     container_name: rdi-web
     ports:
       - '8080:80'
     volumes:
-      - '.:/usr/share/nginx/html'
+      - './web:/usr/share/nginx/html'
     restart: unless-stopped
 
 volumes:
