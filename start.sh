@@ -40,12 +40,12 @@ if [[ "$use_redis_cloud" =~ ^[Yy]$ ]]; then
             export REDIS_CLOUD_PORT="${BASH_REMATCH[4]}"
             export REDIS_CLOUD_URL="$redis_cloud_url"
 
-            echo "✅ Redis Cloud configuration saved"
+            echo "[SUCCESS] Redis Cloud configuration saved"
             echo "   Host: $REDIS_CLOUD_HOST:$REDIS_CLOUD_PORT"
             echo "   User: $REDIS_CLOUD_USER"
             echo ""
         else
-            echo "❌ Invalid Redis Cloud URL format"
+            echo "[ERROR] Invalid Redis Cloud URL format"
             echo "Expected format: redis://default:password@host:port"
             exit 1
         fi
@@ -81,13 +81,14 @@ echo ""
 
 # Step 1: Prepare environment
 show_progress 1 10 "Preparing environment..."
+sleep 1
 sudo chmod -R 777 grafana/ 2>/dev/null || chmod -R 777 grafana/ 2>/dev/null || true
-
 
 complete_step 1 "Environment prepared"
 
 # Step 2: Configure services
 show_progress 2 10 "Configuring services..."
+sleep 1
 export HOSTNAME=$(hostname -s)
 export PASSWORD=$PASSWORD
 export HOST_IP=$(hostname -I | awk '{print $1}')
@@ -98,6 +99,10 @@ envsubst < ./grafana_config/grafana.ini.template > ./grafana_config/grafana.ini 
 envsubst < ./prometheus/prometheus.yml.template > ./prometheus/prometheus.yml 2>/dev/null || true
 complete_step 2 "Services configured"
 
+# Step 3: Starting Docker containers
+show_progress 3 10 "Starting Docker containers..."
+sleep 1
+
 #Total hack.  There are instances where /snap/bin is not ready before docker-compose leading to error
 #So sleep a little.
 
@@ -105,7 +110,12 @@ while [ ! -x /snap/bin ]; do
     sleep 5
 done
 
-docker-compose up -d --build 
+docker-compose up -d --build
+complete_step 3 "Docker containers started"
+
+# Step 4: Configuring Redis Enterprise
+show_progress 4 10 "Configuring Redis Enterprise..."
+sleep 1
 
 main_nodes=( re-n1 )
 all_nodes=( re-n1 )
@@ -136,6 +146,11 @@ docker exec $server curl -k -v --silent --fail -H 'Content-Type: application/jso
 docker cp wait-for-code.sh $server:/tmp/wait-for-code.sh
 docker exec -e URL=https://$server:9443/v1/bootstrap -e CODE=200 $server /bin/bash /tmp/wait-for-code.sh
 
+complete_step 4 "Redis Enterprise configured"
+
+# Step 5: Updating license and finalizing setup
+show_progress 5 10 "Updating license and finalizing setup..."
+sleep 1
 
 #update license
 if [[ -n $RE1_LICENSE ]];
@@ -147,11 +162,22 @@ sleep 20
 docker-compose up -d
 sleep 20
 
+complete_step 5 "License updated and setup finalized"
+
+# Step 6: Configuring Grafana
+show_progress 6 10 "Configuring Grafana dashboards..."
+sleep 1
+
 #configure Grafana
 cd grafana
 bash config_grafana.sh
 cd ..
 
+complete_step 6 "Grafana dashboards configured"
+
+# Step 7: Starting terminal services
+show_progress 7 10 "Starting terminal services..."
+sleep 1
 
 #export GRAFANA_VERSION=$(docker exec grafana grafana server -v | grep -oP 'Version \K[^\s]+')
 #export RE_VERSION=$(docker exec re-n1 bash -c "curl -u $RE_USER:$PASSWORD https://localhost:9443/v1/nodes -k --fail | jq '.'" | grep software_version | uniq | awk -F ":" '{print $2}' | awk -F '\"' '{print $2}')
@@ -173,5 +199,16 @@ echo "Starting ttyd with labuser on port 7681..."
 sudo -u labuser nohup ttyd -W -p 7681 -t disableLeaveAlert=true -t fontSize=14 -t 'cursorStyle=bar' --client-option reconnect=true bash -c "cd /home/labuser && exec bash" &
 
 echo '----------------------------------'
+
+complete_step 7 "Terminal services started"
+
+# Step 8: Final setup completion
+show_progress 8 10 "Completing final setup..."
+sleep 2
+complete_step 8 "Setup completed successfully"
+
+echo ""
+echo "[SUCCESS] Redis RDI Training Environment is ready!"
+echo ""
 
 wait $!
