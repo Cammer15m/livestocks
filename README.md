@@ -57,6 +57,32 @@ docker-compose --profile local-redis up -d --build
 open http://localhost:8080
 ```
 
+## 🛑 Stopping the CTF
+
+### **Easy Stop (Recommended)**
+```bash
+# Stop all CTF containers safely
+./stop_ctf.sh
+
+# The script will:
+# ✅ Stop all running containers gracefully
+# ✅ Verify containers are stopped
+# ✅ Clean up stopped containers
+# ✅ Provide restart instructions
+```
+
+### **Manual Stop Commands**
+```bash
+# Stop containers
+docker-compose down
+
+# Stop and remove all data
+docker-compose down -v
+
+# Force stop if needed
+docker stop redis-rdi-ctf
+```
+
 ## 🎮 What's Included
 
 ### **Single Container Includes:**
@@ -325,6 +351,28 @@ Found an issue or want to improve the labs? Contributions welcome!
 1. Fork the repository
 2. Create a feature branch
 3. Submit a pull request
+
+## 🚀 Quick Reference
+
+```bash
+# Start CTF (interactive setup)
+./start_ctf.sh
+
+# Stop CTF (safe shutdown)
+./stop_ctf.sh
+
+# Access web interface
+open http://localhost:8080
+
+# View logs
+docker logs redis-rdi-ctf
+
+# Enter container
+docker exec -it redis-rdi-ctf bash
+
+# Database access
+docker exec -it redis-rdi-ctf psql -U rdi_user -d rdi_db
+```
 
 ## 📄 License
 
