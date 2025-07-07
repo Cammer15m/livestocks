@@ -38,7 +38,7 @@ cd Redis_RDI_CTF
 ### **Option 1: With Redis Cloud (Recommended)**
 ```bash
 # Configure Redis connection (get free account at redis.com)
-# Edit .env and uncomment/set the Redis Cloud URL:
+# Edit .env and set your Redis Cloud URL:
 # REDIS_URL=redis://username:password@your-redis-cloud-host:port
 
 # Start the CTF
@@ -50,10 +50,12 @@ open http://localhost:8080
 
 ### **Option 2: With Local Redis**
 ```bash
-# The .env file is already configured for local Redis:
-# REDIS_HOST=localhost
-# REDIS_PORT=6379
-# REDIS_PASSWORD=
+# Edit .env to use local Redis instead:
+# Comment out: REDIS_URL=redis://username:password@host:port
+# Uncomment:
+#   REDIS_HOST=localhost
+#   REDIS_PORT=6379
+#   REDIS_PASSWORD=
 
 # Start CTF + local Redis
 docker-compose --profile local-redis up -d --build
