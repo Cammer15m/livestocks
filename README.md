@@ -20,7 +20,7 @@ A complete Redis Data Integration (RDI) training environment using Docker contai
 
 2. **Start the environment:**
    ```bash
-   DOMAIN=localhost ./start.sh
+   ./start.sh
    ```
 
 3. **Access the services:**
@@ -59,14 +59,14 @@ This environment supports both local Redis Enterprise and Redis Cloud:
 
 3. **Start with Redis Cloud:**
    ```bash
-   DOMAIN=localhost ./start.sh
+   ./start.sh
    # When prompted, choose 'y' for Redis Cloud
    # Paste your connection string when asked
    ```
 
 ### Option 2: Local Redis Enterprise
 ```bash
-DOMAIN=localhost ./start.sh
+./start.sh
 # When prompted, choose 'n' for local Redis Enterprise
 ```
 
@@ -125,7 +125,7 @@ DOMAIN=localhost ./start.sh
 
 ```bash
 # Start environment
-DOMAIN=localhost ./start.sh
+./start.sh
 
 # Stop all services
 ./stop.sh
@@ -140,7 +140,7 @@ docker exec -it loadgen bash
 docker-compose ps
 
 # Reset environment
-docker-compose down -v && DOMAIN=localhost ./start.sh
+docker-compose down -v && ./start.sh
 ```
 
 ### **🔧 Configure RDI**

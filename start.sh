@@ -6,7 +6,8 @@
 set -e
 
 # ---------------------------------------------------------------------------
-: ${DOMAIN?"Need to set DOMAIN"}
+# Set defaults if not provided
+[ -z "$DOMAIN" ] && export DOMAIN=localhost
 [ -z "$PASSWORD" ] && export PASSWORD=redislabs
 
 echo "=========================================="
