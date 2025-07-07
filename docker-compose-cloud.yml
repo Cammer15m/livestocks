@@ -70,6 +70,27 @@ services:
         condition: service_healthy
     command: tail -f /dev/null
 
+  # SQLPad for PostgreSQL queries
+  sqlpad:
+    image: 'sqlpad/sqlpad:6'
+    container_name: rdi-sqlpad
+    ports:
+      - '3001:3000'
+    environment:
+      SQLPAD_ADMIN: 'admin@rl.org'
+      SQLPAD_ADMIN_PASSWORD: 'redislabs'
+      SQLPAD_APP_LOG_LEVEL: info
+      SQLPAD_WEB_LOG_LEVEL: warn
+      SQLPAD_CONNECTIONS__pgdemo__name: Ingest-Postgres-DB
+      SQLPAD_CONNECTIONS__pgdemo__driver: postgres
+      SQLPAD_CONNECTIONS__pgdemo__host: postgresql
+      SQLPAD_CONNECTIONS__pgdemo__database: chinook
+      SQLPAD_CONNECTIONS__pgdemo__username: postgres
+      SQLPAD_CONNECTIONS__pgdemo__password: postgres
+    depends_on:
+      postgresql:
+        condition: service_healthy
+
   # Simple web interface for instructions
   web:
     image: nginx:alpine
