@@ -73,7 +73,7 @@ RUN echo "# Redis RDI CTF Environment Configuration" > /app/.env.template && \
     echo "DB_PASSWORD=rdi_password" >> /app/.env.template
 
 # Make scripts executable
-RUN chmod +x scripts/*.sh scripts/*.py
+RUN chmod +x scripts/*.py
 
 # Expose ports
 EXPOSE 8080
