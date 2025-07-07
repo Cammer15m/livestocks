@@ -142,7 +142,76 @@ done
 
 # Verify container is still running
 if docker ps | grep -q redis-rdi-ctf; then
-    echo "🎉 Redis RDI CTF is ready and running in background!"
+    echo "🎉 Redis RDI CTF container is running!"
+    echo ""
+
+    # Comprehensive health checks
+    echo "🔍 Running post-startup health checks..."
+
+    # Check 1: Container health status
+    echo "   • Checking container health..."
+    sleep 5  # Give container time to settle
+    if docker inspect redis-rdi-ctf --format='{{.State.Health.Status}}' 2>/dev/null | grep -q "healthy"; then
+        echo "     ✅ Container is healthy"
+    else
+        echo "     ⚠️  Container health check pending..."
+    fi
+
+    # Check 2: Web interface accessibility
+    echo "   • Testing web interface..."
+    if timeout 10 curl -s http://localhost:8080 >/dev/null 2>&1; then
+        echo "     ✅ Web interface accessible on port 8080"
+    else
+        echo "     ❌ Web interface not responding"
+        echo "     🔍 Check logs: docker logs redis-rdi-ctf"
+        exit 1
+    fi
+
+    # Check 3: PostgreSQL service
+    echo "   • Testing PostgreSQL database..."
+    if docker exec redis-rdi-ctf pg_isready -U rdi_user -d rdi_db >/dev/null 2>&1; then
+        echo "     ✅ PostgreSQL database is ready"
+    else
+        echo "     ❌ PostgreSQL database not responding"
+        echo "     🔍 Check logs: docker logs redis-rdi-ctf"
+        exit 1
+    fi
+
+    # Check 4: Redis connection from container
+    echo "   • Testing Redis connection from container..."
+    if docker exec redis-rdi-ctf python3 -c "
+import redis
+import os
+from urllib.parse import urlparse
+
+# Get Redis URL from environment
+redis_url = os.getenv('REDIS_URL')
+if redis_url:
+    try:
+        r = redis.from_url(redis_url, socket_timeout=5)
+        r.ping()
+        print('     ✅ Redis connection successful from container')
+    except Exception as e:
+        print(f'     ❌ Redis connection failed: {e}')
+        exit(1)
+else:
+    print('     ⚠️  REDIS_URL not set in container')
+    exit(1)
+" 2>/dev/null; then
+        echo ""
+    else
+        echo "     ❌ Redis connection failed from container"
+        echo "     🔍 Check your Redis Cloud configuration"
+        exit 1
+    fi
+
+    echo "✅ All health checks passed!"
+    echo ""
+    echo "🎉 Redis RDI CTF is ready and fully operational!"
+    echo ""
+    echo "🌐 Access your CTF at: http://localhost:8080"
+    echo "📋 View logs: docker logs redis-rdi-ctf"
+    echo "🛑 Stop CTF: ./stop_ctf.sh"
     exit 0
 else
     echo "❌ Container failed to start properly"
