@@ -21,17 +21,20 @@ if grep -q "REDIS_URL=redis://username:password@host:port" .env; then
 
     if [ "$redis_option" = "1" ]; then
         echo ""
-        echo "📝 Please provide your Redis Cloud connection details:"
-        echo "   (Get these from your Redis Cloud dashboard)"
+        echo "📝 Please provide your Redis Cloud connection string:"
+        echo "   (Copy from your Redis Cloud dashboard - 'Connect using Redis CLI')"
+        echo "   Example: redis://default:password@redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com:17173"
         echo ""
-        read -p "Redis Host (e.g., redis-12345.c1.us-east-1-1.ec2.cloud.redislabs.com): " redis_host
-        read -p "Redis Port (usually 12345): " redis_port
-        read -p "Redis Username (usually 'default'): " redis_username
-        read -s -p "Redis Password: " redis_password
-        echo ""
+        read -p "Redis Cloud URL: " redis_url
+
+        # Validate URL format
+        if [[ ! "$redis_url" =~ ^redis://.*@.*:[0-9]+$ ]]; then
+            echo "❌ Invalid Redis URL format. Please use the complete URL from Redis Cloud."
+            echo "   Format: redis://username:password@host:port"
+            exit 1
+        fi
 
         # Update .env file
-        redis_url="redis://${redis_username}:${redis_password}@${redis_host}:${redis_port}"
         sed -i "s|REDIS_URL=redis://username:password@host:port|REDIS_URL=${redis_url}|" .env
 
         echo "✅ Redis Cloud configuration saved to .env"

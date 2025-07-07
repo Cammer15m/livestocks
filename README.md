@@ -41,7 +41,7 @@ cd Redis_RDI_CTF
 **Option 1: Redis Cloud**
 ```bash
 # Get free account at redis.com, then edit .env:
-# REDIS_URL=redis://username:password@your-redis-cloud-host:port
+# REDIS_URL=redis://default:password@redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com:17173
 
 docker-compose up -d --build
 open http://localhost:8080
