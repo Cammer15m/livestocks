@@ -27,6 +27,24 @@ services:
     volumes:
       - redis-insight-data:/data
 
+  # RDI Server for Redis Insight
+  rdi-server:
+    image: redislabs/redis-di:latest
+    container_name: rdi-server
+    ports:
+      - '13000:13000'
+    environment:
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_USER=${REDIS_USER:-default}
+    volumes:
+      - './rdi-config:/config'
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    restart: unless-stopped
+
   # RDI CLI container
   rdi-cli:
     build:
