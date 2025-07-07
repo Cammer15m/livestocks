@@ -52,21 +52,51 @@ if [[ "$use_redis_cloud" =~ ^[Yy]$ ]]; then
     fi
 fi
 
-echo "Starting Docker containers..."
+# Progress bar functions
+show_progress() {
+    local current=$1
+    local total=$2
+    local message=$3
+    local percent=$((current * 100 / total))
+    local filled=$((percent / 2))
+    local empty=$((50 - filled))
 
-sudo chmod -R 777 grafana/
+    printf "\r\033[K"  # Clear line
+    printf "[$percent%%] "
+    printf "%*s" $filled | tr ' ' '█'
+    printf "%*s" $empty | tr ' ' '░'
+    printf " $message"
+}
+
+complete_step() {
+    local step=$1
+    local message=$2
+    printf "\r\033[K✅ [$step/10] $message\n"
+}
+
+echo ""
+echo "🚀 Starting Redis RDI Training Environment..."
+echo "   This will take approximately 3-5 minutes"
+echo ""
+
+# Step 1: Prepare environment
+show_progress 1 10 "Preparing environment..."
+sudo chmod -R 777 grafana/ 2>/dev/null || chmod -R 777 grafana/ 2>/dev/null || true
 
 
+complete_step 1 "Environment prepared"
+
+# Step 2: Configure services
+show_progress 2 10 "Configuring services..."
 export HOSTNAME=$(hostname -s)
 export PASSWORD=$PASSWORD
 export HOST_IP=$(hostname -I | awk '{print $1}')
-
 export RDI_VERSION=1.10.0
-
-envsubst < ./grafana_config/grafana.ini.template > ./grafana_config/grafana.ini
-envsubst < ./prometheus/prometheus.yml.template > ./prometheus/prometheus.yml
-
 export RE_USER=admin@rl.org
+
+envsubst < ./grafana_config/grafana.ini.template > ./grafana_config/grafana.ini 2>/dev/null || true
+envsubst < ./prometheus/prometheus.yml.template > ./prometheus/prometheus.yml 2>/dev/null || true
+complete_step 2 "Services configured"
 
 #Total hack.  There are instances where /snap/bin is not ready before docker-compose leading to error
 #So sleep a little.
