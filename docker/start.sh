@@ -11,6 +11,9 @@ fi
 
 # Start PostgreSQL temporarily to set up database
 echo "🗄️ Starting PostgreSQL..."
+# Create log file with proper permissions
+touch /var/log/postgresql.log
+chown postgres:postgres /var/log/postgresql.log
 sudo -u postgres /usr/lib/postgresql/14/bin/pg_ctl -D /var/lib/postgresql/14/main -l /var/log/postgresql.log start
 
 # Wait for PostgreSQL to be ready
