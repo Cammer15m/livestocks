@@ -91,19 +91,15 @@ services:
       postgresql:
         condition: service_healthy
 
-  # Training materials web interface
+  # Web interface serving live repo content
   web:
-    image: node:18-alpine
+    image: nginx:alpine
     container_name: rdi-web
     ports:
-      - '8080:9080'
+      - '8080:80'
     volumes:
-      - './rdi-training:/app'
-    working_dir: /app
-    command: sh -c "npm install && npm run dev"
+      - '.:/usr/share/nginx/html'
     restart: unless-stopped
-    environment:
-      - NODE_ENV=development
 
 volumes:
   redis-insight-data:
