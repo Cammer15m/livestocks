@@ -9,8 +9,8 @@ echo "🚀 Starting Redis RDI CTF..."
 echo "📋 This will show startup logs, then run in background if successful"
 echo ""
 
-# Check if Redis is configured
-if grep -q "REDIS_URL=redis://username:password@host:port" .env; then
+# Check if Redis is configured (look for placeholder values)
+if grep -q "REDIS_URL=redis://default:password@redis-17173" .env; then
     echo "🔧 Redis Cloud configuration needed!"
     echo ""
     echo "Options:"
@@ -35,7 +35,7 @@ if grep -q "REDIS_URL=redis://username:password@host:port" .env; then
         fi
 
         # Update .env file
-        sed -i "s|REDIS_URL=redis://username:password@host:port|REDIS_URL=${redis_url}|" .env
+        sed -i "s|REDIS_URL=redis://default:password@redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com:17173|REDIS_URL=${redis_url}|" .env
 
         echo "✅ Redis Cloud configuration saved to .env"
         echo ""
