@@ -38,36 +38,8 @@ if grep -q "REDIS_URL=redis://default:password@redis-17173" .env; then
         sed -i "s|REDIS_URL=redis://default:password@redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com:17173|REDIS_URL=${redis_url}|" .env
 
         echo "✅ Redis Cloud configuration saved to .env"
+        echo "ℹ️  Redis connection will be tested after container starts"
         echo ""
-
-        # Test Redis connection using Python
-        echo "🔍 Testing Redis connection..."
-        if timeout 10 python3 -c "
-import sys
-try:
-    import redis
-    r = redis.from_url('$redis_url', socket_timeout=5, socket_connect_timeout=5)
-    result = r.ping()
-    if result:
-        print('✅ Redis connection successful!')
-    else:
-        print('❌ Redis ping failed!')
-        sys.exit(1)
-except ImportError:
-    print('❌ Python redis library not installed!')
-    print('   Please install: pip3 install redis')
-    print('   Or see README for prerequisites.')
-    sys.exit(1)
-except Exception as e:
-    print('❌ Failed to connect to Redis Cloud!')
-    print(f'   Error: {str(e)}')
-    print('   Please check your connection string and try again.')
-    sys.exit(1)
-"; then
-            echo ""
-        else
-            exit 1
-        fi
 
     elif [ "$redis_option" = "2" ]; then
         echo ""
