@@ -1,0 +1,11 @@
+{
+  "action": "create_cluster",
+  "cluster": {
+    "name": "re-cluster1.ps-redislabs.org"
+  },
+  "credentials": {
+       "username": "admin@rl.org",
+       "password": "redislabs"
+  }
+}
+
