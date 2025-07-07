@@ -27,30 +27,14 @@ services:
     volumes:
       - redis-insight-data:/data
 
-  # RDI Server for Redis Insight
-  rdi-server:
-    image: redislabs/redis-di:latest
-    container_name: rdi-server
-    ports:
-      - '13000:13000'
-    environment:
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - REDIS_USER=${REDIS_USER:-default}
-    volumes:
-      - './rdi-config:/config'
-    depends_on:
-      postgresql:
-        condition: service_healthy
-    restart: unless-stopped
-
-  # RDI CLI container
+  # RDI CLI container with server
   rdi-cli:
     build:
       context: .
       dockerfile: rdi.dockerfile
     container_name: rdi-cli
+    ports:
+      - '13000:13000'
     environment:
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_PORT=${REDIS_PORT}
@@ -67,7 +51,7 @@ services:
     depends_on:
       postgresql:
         condition: service_healthy
-    command: tail -f /dev/null
+    command: sh -c "redis-di start-server --port 13000 --password redislabs & tail -f /dev/null"
 
   # Load generator for testing
   loadgen:
