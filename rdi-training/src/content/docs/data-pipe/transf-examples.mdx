@@ -1,0 +1,154 @@
+---
+title: "Transformation examples"
+sidebar:
+  # Set a custom order for the link (lower numbers are displayed higher up)
+  order: 5 
+---
+
+In this section, let's take a look at a few transformation examples. For all of the examples, let's assume we are still using the Invoices and InvoiceLineItems tables from earlier.
+
+### Write to a Redis hash
+
+We have already seen this quite a bit in the previous example, but here is another job file to explore: 
+
+```YAML
+source:
+  table: invoice
+output:
+  - uses: redis.write
+    with:
+      connection: target
+      data_type: hash
+      key:
+        expression: concat(['invoice_id:', InvoiceId])
+        language: jmespath
+```
+
+In this case, the result will be Redis hashes with key names based on the key expression (for example, `invoice_id:1`).
+
+### Write to a Redis JSON document
+
+In the example below, the data is captured from the source table named invoice and is written to the Redis database as a JSON document.
+
+```YAML
+source:
+  table: invoice
+output:
+  - uses: redis.write
+    with:
+      connection: target
+      data_type: json
+      key:
+        expression: concat(['invoice_id:', InvoiceId])
+        language: jmespath
+      on_update: replace        
+```
+
+Here we are again exploring the parameter `on_update` which specifies the writing strategy, but this time with the value of  `replace` (the default) rather than `merge`. The `replace` option is usually more performant, while `merge` allows other jobs and apps to set extra fields in the same JSON documents.
+
+{/* Add example produced json */}
+
+### Write to a Redis set 
+
+A data structure we have yet to see in a transformation is the Set. Here is an example of a job that produces a Redis Set: 
+
+```YAML
+source:
+  table: invoice
+output:
+  - uses: redis.write
+    with:
+      connection: target
+      data_type: set
+      key:
+        expression: concat(['invoices:', BillingCountry])
+        language: jmespath
+      args:
+        member: InvoiceId
+```
+
+When writing to a set, you must supply an extra argument, `member`, which specifies the field that will be written. In this case, the result will be a Redis set with key names based on the key expression (for example, `invoices:Germany`, `invoices:USA`) 
+
+
+### Write to a Redis sorted set
+
+Similarly, you can write to a Sorted Set data structure. Here is an example: 
+
+```YAML
+source:
+  server_name: chinook
+  schema: public
+  table: invoice
+output:
+  - uses: redis.write
+    with:
+      connection: target
+      data_type: sorted_set
+      key:
+        expression: "`invoices:sorted`"
+        language: jmespath
+      args:
+        score: Total
+        member: InvoiceId 
+```
+
+When writing to sorted sets, you must provide two additional arguments, `member` and `score`. These specify the field names that will be used as a member and a score to add an element to a sorted set. In this case, the result will be a Redis sorted set named `invoices:sorted` based on the key expression. 
+
+Since sorted sets in Redis are inherently sorted, you can, for example, easily get the top N invoices by total invoice amount using the command below (the range `0..9` gets the top 10 invoices):
+
+```bash
+ZREVRANGE invoices:sorted 0 9 WITHSCORES
+```
+
+### Write to a Redis stream
+
+RDI also allows you to convert the data to a Redis Stream. Here is an example: 
+
+```YAML
+source:
+  table: invoice
+output:
+  - uses: redis.write
+    with:
+      connection: target
+      data_type: stream
+      key:
+        expression: "`invoice:events`"
+        language: jmespath
+      mapping:
+        - InvoiceId: message_id
+        - BillingCountry: country
+        - Total
+```
+
+When writing to streams, you can use the optional parameter `mapping` to limit the number of fields sent in a message and to provide aliases for them. If you don't use the mapping parameter, all fields captured in the source will be passed as the message payload.
+
+Note that streams are different from other data structures because existing messages are never updated or deleted. Any operation in the source will generate a new message with the corresponding operation code (`op_code field`) that is automatically added to the message payload.
+
+In this case, the result will be a Redis stream with the name based on the key expression (for example, `invoice:events`). Only three original fields are passed in the message payload: `InvoiceId` (as `message_id`), `BillingCountry` (as `country`), `Total` (as `Total`, no alias provided) and `op_code`, which is implicitly added to all messages sent to streams.
+
+### Write to a Redis string 
+
+Strings are also a popular data structure to store data into. The string data type is useful for capturing a string representation of a single column from a source table. Here is an example: 
+
+```YAML
+source:
+  table: album
+  row_format: full
+output:
+  - uses: redis.write
+    with:
+      connection: target
+      data_type: string
+      key:
+        expression: concat(['AlbumTitle:', values(key)[0]])
+        language: jmespath
+      args:
+        value: title
+```
+
+In the example above, the `title` column is captured from the invoice table in the source. The title value is then written to the Redis target database as a string under a custom key of the form `AlbumTitle:42`, where the `42` is the primary key value of the table (the `albumid` column).
+
+Also note that we are defining `row_format: full` since the `key` property in the defined expression wouldn't be able to be accessed otherwise.
+
+Additionally, the <a href="https://redis.io/docs/latest/integrate/redis-data-integration/data-pipelines/transform-examples/" target="_blank">RDI documentation</a> has examples for transformations like adding a new field, removing a field, restructuring objects, and more. 

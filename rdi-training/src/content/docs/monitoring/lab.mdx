@@ -1,0 +1,103 @@
+---
+title: "Lab: Observability"
+sidebar:
+  # Set a custom order for the link (lower numbers are displayed higher up)
+  order: 6 
+---
+import { Steps } from '@astrojs/starlight/components';
+
+In this section, we will setup monitoring for the RDI deployment. This involves the following steps:
+1. Configuring Prometheus
+2. Configuring Ingress
+3. Verifying the Configuration
+
+### Configure Prometheus
+
+First we will configure <a href="https://prometheus.io/" target="_blank">Prometheus</a> with the jobs we want to track. Each job in the configuration specifies a set of endpoints (targets) that Prometheus scrapes for metrics.
+<Steps>
+
+1. SSH into the <a href="http://localhost:7681/" target="_blank">virtual machine</a>.
+
+2. Open the prometheus config file using the following command:
+    ```bash
+    sudo vi /content/prometheus/prometheus.yml
+    ```
+3. Scroll the cursor to the bottom of the file using your arrow keys and then paste the following jobs in the `prometheus.yml` file. Once added, there may be an issue with indentation. To resolve this, enter visual mode by pressing `v`. Use your arrow keys to highlight the block that was pasted, and then click `=` to auto indent the block. Finally, save the changes by pressing the `Escape` key, followed by `:wq!` and then `enter\return`.
+    ```yml
+    - job_name: 're'
+      static_configs:
+        - targets:
+          - 172.16.22.21:8070
+      honor_labels: true
+      tls_config:
+        insecure_skip_verify: true
+      scheme: https
+
+    - job_name: 're_v2'
+      static_configs:
+        - targets:
+          - 172.16.22.21:8070
+      honor_labels: true
+      metrics_path: '/v2/metrics'
+      tls_config:
+        insecure_skip_verify: true
+      scheme: https
+
+    - job_name: collector-source   
+      metrics_path: /metrics/collector-source
+      static_configs:
+        - targets: [${HOST_IP}]
+      scheme: https
+      tls_config:
+        insecure_skip_verify: true
+
+    - job_name: rdi
+      metrics_path: /metrics/rdi
+      static_configs:
+        - targets: [${HOST_IP}]
+      scheme: https
+      tls_config:
+        insecure_skip_verify: true
+    ```
+
+4. Restart the Prometheus container in the terminal. If prompted for a password, enter `redislabs`.
+
+    ```bash
+    sudo docker restart prometheus
+    ```
+5. Check the prometheus container logs and make sure there are no syntax errors. If there is any error then check the .yml indentation.
+
+    ```bash
+    sudo docker logs prometheus
+    ```
+
+</Steps>
+
+
+### Verify configuration (Prometheus)
+
+<Steps>
+1. Go to <a href="http://localhost:9090/" target="_blank">Prometheus</a>.
+2. On the top nav menu, click **Status** and then **Target health**.
+3. Confirm the targets have a Green status.
+    <div style="margin:3% auto;"><img src="/doc/assets/prom-green-sources.png"/></div>
+4. Click the pipeline status icon and observe that pipeline status in <a href="https://5540-p-$HOSTNAME.$DOMAIN/" target="_blank">Redis Insight</a>.
+    <div style="margin:3% auto;"><img src="/doc/assets/rdi-observ-green-status.jpg"/></div>
+</Steps>
+
+
+### Verify configuration (Grafana)
+<Steps>
+1. Open <a href="http://localhost:3000/" target="_blank">Grafana</a>.
+
+2. Log in with the username `admin` and password `redislabs`.
+
+3. Click the hamburger menu icon on the left side top corner then select Dashboards. You will find the following dashboards listed:
+    - BDB Dashboard
+    - Cluster Dashboard
+    - Node Dashboard
+    - PostgreSQL Database
+    - RDI Dashboard
+</Steps>
+
+Explore the dashboards to see the type of data that is tracked in Grafana.

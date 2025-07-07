@@ -1,0 +1,33 @@
+---
+title: "Preparing databases for RDI"
+sidebar:
+ # Set a custom order for the link (lower numbers are displayed higher up)
+ order: 1
+---
+import { Aside } from '@astrojs/starlight/components';
+
+
+Now that we have examined the RDI architecture, it is time to set up RDI and get it running. The first step in doing so is to prepare the source database that will be used with Redis so that it can be processed by the RDI collector.
+
+<img class="image-center" src="/doc/assets/database-prep.svg"/>
+
+### CDC setup process
+
+A CDC collector is an important component of the RDI architecture because it captures changes from the source database. RDI currently uses an open-source collector called <a href="https://debezium.io/" target="_blank">Debezium</a> for this process.
+
+The Debezium implementation that is needed depends on the type of source database. Examples include:
+- Mining the source commit log
+- Querying binlog events
+- Monitoring change publications via plugin
+- Using a stored procedure in the source db
+
+For PostgreSQL, the database supports several logical decoding plug-ins to enable CDC. For this lab, we have already taken care of the hard parts of the database preparation process with the provided Postgresql database. You will still need to verify a few settings in the next lab but for the most part, it will be good to go. If you are seeking more details on the specific setup for each type of source database, or want to see the process in full, please visit the RDI documentation for <a href='https://redis.io/docs/latest/integrate/redis-data-integration/data-pipelines/prepare-dbs/' target="_blank">preparing a source database</a>.
+
+Let's move on to booting up the Redis databases and finalizing the PostgreSQL database setup.
+
+
+
+
+
+
+

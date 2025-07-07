@@ -1,0 +1,222 @@
+---
+title: "Lab: Transformation challenges"
+sidebar:
+  # Set a custom order for the link (lower numbers are displayed higher up)
+  order: 1
+---
+import { Steps } from '@astrojs/starlight/components';
+import { Aside } from '@astrojs/starlight/components';
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+
+Great job on getting your first pipeline deployed and running. You have completed an essential step in starting to master RDI. However, real-world data pipelines will be a bit more complex than the example we covered in the previous lab. This section is dedicated to optional (but highly encouraged) challenges related to writing RDI data pipelines to give you more experience transforming source data. 
+
+<Aside>
+1. Some of the challenges will require you to work with JSON data. Double check the target database in Redis Software has the JSON module enabled.
+2. You can continue to use the same configuration file from the previous lab for all the challenges.
+3. Each challenge is meant to use its own unique job files, do not reuse or build upon the code written from the previous challenge(s).
+4. Be sure to double check code indentation when pasting solution code. Incorrect indentation will result in a broken pipeline.
+</Aside>
+
+### Challenge setup
+
+For each of the challenges below, you will need to reset the state of the Redis target database. **You must do this after each challenge to start the data on a clean slate**. There are two steps to complete the reset:
+<Steps>
+1. **Stop the current RDI pipeline**. This can be done by navigating into the RDI instance in Redis Insight and clicking the "Stop Pipeline" button on the top right. When we write and deploy any new pipelines going forward, RDI will allow us to take a new snapshot of the initial database, as well as overwrite the existing pipeline we stopped. 
+
+    ![](/doc/assets/rdi-stop-pipeline.png)
+
+2. **Flush the target database**. To do so, navigate to the target database in Redis Insight, and then click on the workbench icon on the left side menu. From there, run the `flushall` command. This will remove all the data from the target database. If you don't see the workbench icon, double check you have clicked into the specific target database. 
+
+    ![](/doc/assets/flush-database.png)
+  
+</Steps>
+
+Additionally, when deploying a new pipeline for each challenge, make sure to select the "Reset" option for every new deployment. 
+
+![](/doc/assets/rdi-reset-pipeline.png)
+
+If you don't stop the data pipeline and flush the database, the resulting data may be a mix of different data structures.
+
+### Challenge 1: Redis JSON conversion
+
+As we saw with the transformation from the previous lab, the data from the tables was all turned into individual hashes. Another common data structure that you may want to use with RDI is JSON (💡 think traditional document database). 
+
+For this challenge, write a transformation job that does the following: 
+- Converts all data across all tables into JSON with a `<table> <entityid>` key format (e.g., `Track:10`, `Genre:1`)
+- Adds a new field into the JSON for entries from the "Track" table called "TrackTime" which is a conversion of the "Milliseconds" field to minutes rounded up to two decimal places.
+
+Once completed, here is an example (for an entry in the "Track" table) of what the JSON should look like: 
+
+```json
+// Track:10 (Key)
+{
+    trackId: 10,
+    name: "Evil Walks", 
+    AlbumId: 1,
+    MediaTypeId: 1,
+    GenreId: 1,
+    Composer: "Angus Young, Malcolm Young, Brian Johnson",
+    Milliseconds: 86340,
+    TrackTime: 1.44 //Rounded up from 1.439
+    Bytes: 8611245,
+    UnitPrice: 0.99
+}
+```
+<Aside type="note" title="Hint">
+It may be helpful to review the key expression defined in the "Write to a Redis string" job example from the <a href="/data-pipe/transf-examples/#write-to-a-redis-string">Transformation examples</a> section in regards to setting a dynamic key value.
+</Aside>
+
+<details>
+<summary>Solution Code</summary>
+Here is what the job files should look like: 
+
+<Tabs>
+    <TabItem label="default-job.yaml">
+        ```YAML
+        source:
+            table: '*'
+            row_format: full
+
+        output:
+            - uses: redis.write
+              with:
+                data_type: json
+                key:
+                    expression: concat([table, ':', values(key)[0]])
+                    language: jmespath
+        ```
+    </TabItem>
+    <TabItem label="track-job.yaml">
+        ```YAML
+        source:
+            table: Track
+
+        transform:
+            - uses: add_field
+              with:
+                field: TrackTime
+                expression: ROUND(Milliseconds / 60000)
+                language: sql
+            
+        output:
+            - uses: redis.write
+              with:
+                data_type: json
+                key:
+                  expression: concat(['track:', TrackId])
+                  language: jmespath
+        ```
+    </TabItem>
+</Tabs>
+</details>
+
+### Challenge 2: Redis JSON denormalization
+
+We got the data to convert to JSON, but now, let's take it a step further and practice the process of denormalization. 
+
+For this challenge, write a transformation job that targets the "Track" and "Album" tables and converts the values from the track table into one single nested JSON object inside of a album. The rest of the tables can be left alone and don't need to be targeted. 
+
+Once completed, here is an example of what the JSON entry should look like in Redis: 
+
+```json
+// album:12 (Key)
+{ Tracks:
+	15: { // track with id = 15
+            Name: 
+            Album:
+            MediaType: 
+            Genre: 
+            Composer:
+            ...
+		}
+	16: {...}
+} 
+```
+
+<details>
+<summary>Solution Code</summary>
+Here is what the job file should look like: 
+
+<Tabs>
+    <TabItem label="denorm-job.yaml">
+        ```YAML
+        source:
+            table: Track
+        output:
+            - uses: redis.write
+              with:
+                nest:
+                    parent:
+                    table: Album
+                    nesting_key: TrackId
+                    parent_key: AlbumId
+                    path: $.Tracks
+                    structure: map
+                data_type: json
+        ```
+    </TabItem>
+</Tabs>
+</details>
+
+
+### Challenge 3: Redis set conversion
+
+Another useful Redis data structure for our music data is a Set. Since the "Genre" table consists of unique entries (e.g., there is only one "Rock" genre), a Redis Set is a natural fit for storing this data efficiently. 
+
+For this challenge, create and deploy a pipeline that extracts data from the "Genre" table and converts it into a single Redis set called "genres". Each entry in the table should be added as a member of the set, using the value of its "Name" property. The rest of the tables can be left alone and don't need to be targeted.
+
+<details>
+<summary>Solution Code</summary>
+Here is what the job file should look like: 
+
+<Tabs>
+    <TabItem label="set-genre-job.yaml">
+    ```YAML
+    source:
+        table: Genre
+
+    output:
+        - uses: redis.write
+          with:
+            data_type: set
+            key:
+                expression: concat(['genres'])
+                language: jmespath
+            args:
+                member: Name
+    ```
+    </TabItem>
+</Tabs>
+</details>
+
+### Challenge 4: Redis sorted set conversion
+
+Similarly to a Redis set, a Redis sorted set can also be useful to organize the music database. Since sorted sets support ranking and indexing, they are ideal for scenarios where we need to order data — such as sorting tracks by duration.
+
+For this challenge, extract data from the "Track" table and use a RDI pipeline to create a sorted set called "track_durations". Each track's "TrackID" should be used as the member, and its "Milliseconds" value should serve as the score. The rest of the tables can be left alone and don't need to be targeted.
+
+<details>
+<summary>Solution Code</summary>
+Here is what the job file should look like: 
+
+<Tabs>
+    <TabItem label="sortedset-track-job.yaml">
+    ```YAML
+    source:
+        table: Track
+
+    output:
+        - uses: redis.write
+          with:
+            data_type: sorted_set
+            key:
+              expression: concat(['track_durations'])
+              language: jmespath
+            args:
+              score: Milliseconds
+              member: Name
+    ```
+    </TabItem>
+</Tabs>
+</details>

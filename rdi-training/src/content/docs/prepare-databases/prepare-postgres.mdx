@@ -1,0 +1,83 @@
+---
+title: "Lab: Prepare Postgres"
+sidebar:
+  # Set a custom order for the link (lower numbers are displayed higher up)
+  order: 3 
+---
+import { Steps } from '@astrojs/starlight/components';
+
+In this section, we'll prepare the PostgreSQL database for RDI. As previously mentioned, most of the setup has already been completed for you. This last part of the setup will allow the database to share database changes in a more detailed way. We accomplish this by updating the `wal_level` setting of the database to the value of `logical` which allows for a process known as <a href="https://www.postgresql.org/docs/current/logical-replication.html#:~:text=Logical%20replication%20is%20a%20method%20of%20replicating,uses%20exact%20block%20addresses%20and%20byte%2Dby%2Dbyte%20replication.">logical replication</a>. 
+
+You won't need to be an expert on this process to get RDI to run, but it may be helpful to familiarize yourself with the specifics in the future. For now, just know that under the hood, the PostgreSQL database needs a specific setting value to be able to transmit data during CDC in a way that RDI can process.
+
+Additionally, if you're curious about what the full PostgreSQL setup process looks like, visit the <a href="https://redis.io/docs/latest/integrate/redis-data-integration/data-pipelines/prepare-dbs/postgresql/" target="_blank">RDI documentation</a>.
+
+### Prepare PostgresSQL for RDI
+
+<Steps>
+1. <a href="http://localhost:7681/" target="_blank">Open the Terminal</a>
+   <p></p>
+
+2. Access the running PostgresSQL container:
+
+   ```bash
+   sudo docker exec -it postgresql bash
+   ```
+
+3. Use the `psql` command-line tool to connect to the PostgreSQL instance:
+
+   ```bash
+   psql -U postgres
+   ```
+
+4. Set the `wal_level` value:
+
+   ```bash
+   ALTER SYSTEM SET wal_level = 'logical';
+   ```
+
+5. Reload the database's configuration file:
+   ```bash
+   SELECT pg_reload_conf();
+   ```
+
+6. Exit the postgresql shell (`Ctrl+D`)
+7. Exit the postgresql container (`Ctrl+D`)
+</Steps>
+
+### Verify the setting has persisted 
+<Steps>
+1. The `ALTER SYSTEM` command modifies the `postgresql.auto.conf` file. To confirm it was updated, you can check its contents by running the following:
+
+   ```bash
+   sudo docker exec -it postgresql bash -c "cat /var/lib/postgresql/data/postgresql.auto.conf"
+   ```
+
+2. Confirm the `wal_level` is equal to `'logical'`
+
+3. If it's present, the setting has been written, but it won't take effect until a restart. Restart the postgresql instance using the following command:
+
+   ```bash
+   sudo docker restart postgresql
+   ```
+</Steps>
+
+### Verify the change
+<Steps>
+1. After the restart, re-enter the PostgreSQL instance and check the `wal_level` setting again:
+
+    ```bash
+    sudo docker exec -it postgresql psql -U postgres -c "SHOW wal_level;"
+    ```
+
+2. Confirm the following shows up: 
+
+   ```
+    wal_level 
+    -----------
+    logical
+    (1 row)
+   ```
+</Steps>
+  
+And that's it. The PostgreSQL database is ready to work with RDI. 🎉

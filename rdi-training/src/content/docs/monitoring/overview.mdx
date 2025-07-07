@@ -1,0 +1,52 @@
+---
+title: "Observability overview"
+sidebar:
+  # Set a custom order for the link (lower numbers are displayed higher up)
+  order: 1
+---
+
+As with most software, it's important to understand the available toolset for observability. RDI has a few different ways for its metrics to be tracked and managed. In this section, we will explore a few of those ways to observe and monitor your RDI instances.
+
+### Monitoring RDI
+
+There are three general categories for monitoring RDI: 
+
+1. **RDI Metrics:**
+RDI reports metrics about its operation using Prometheus exporter endpoints. There is one for CDC collector metrics and another for stream processor metrics. You can connect to the endpoints with Prometheus to query the metrics and plot simple graphs or with Grafana to produce more complex visualizations and dashboards.
+    - Collector metrics:
+
+      These metrics are divided into three groups:
+      - Pipeline state: metrics about the pipeline mode and connectivity
+      - Data flow counters: counters for data breakdown per source table
+      - Processing performance: processing speed of RDI micro batches
+    
+      The endpoint for the collector metrics is `https://<RDI_HOST>/metrics/collector-source`.
+    
+    - Stream Processor metrics:
+
+      RDI reports metrics during the two main phases of the ingest pipeline, the initial caching phase and the change streaming phase. The <a href="https://redis.io/docs/latest/integrate/redis-data-integration/observability/" target="_blank"> RDI documentation</a> has the full table of available data points that can be captured.
+
+      The endpoint for the stream processor metrics is `https://<RDI_HOST>/metrics/rdi`.
+
+2. **Logs:**
+By default, RDI stores logs in the host VM file system at `/opt/rdi/logs`. The logs are recorded at the minimum INFO level and get rotated when they reach a size of 100MB.
+
+3. **Support package “dump”:**
+For a more comprehensive set of forensics data to send to Redis support, you can run the `redis-di dump-support-package` command from the RDI CLI. 
+
+
+### Monitoring using Redis Insight
+
+Another way to monitor RDI is through Redis Insights RDI dashboard. There are a few notable areas highlighted in the image below:
+
+![](/doc/assets/rdi-insights.svg)
+
+Here is a breakdown of each notable area highlighted in the image:
+
+1. **Pipeline Status**: Shows the current status of the pipeline. This status is useful to quickly determine if the pipeline is successfully running and in which stage (e.g., Initial Sync, Streaming).
+2. **Processing Performance Information**: Provides high level performance metrics. These metrics are useful to quickly identify if there is a bottleneck occurring on the RDI instance.
+3. **Target Connections**: As the name implies, this section lists all the target databases connected. If you don't see your target database, it's a good indication something went wrong with the initial setup of the RDI instance.
+4. **Data Streams Overview**: Gives an overview of tables that are processed. At a glance, this section can tell you if data is being processed by RDI. For example, if you spot a large number of rejected or filtered values, that will help indicate something may be going wrong with the RDI job. You will also be able to spot these metrics across individual tables! 
+5. **Clients**: Shows the clients that are connected to the RDI instance.
+
+Let's now move on to set up observability with Grafana and Prometheus in the next lab!

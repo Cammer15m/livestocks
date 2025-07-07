@@ -1,0 +1,77 @@
+---
+title: "Key terms cheatsheet"
+sidebar:
+  # Set a custom order for the link (lower numbers are displayed higher up)
+  order: 1
+---
+import { Card } from '@astrojs/starlight/components';
+
+<Card title="Redis Data Integration (RDI)">
+A Redis product that synchronizes data between external databases and Redis in real time. It enables seamless data flow by capturing changes from the source database and updating Redis, ensuring consistency and low-latency access to critical data for apps.
+</Card>
+
+<Card title="Source database">
+The origin database from which RDI extracts data to synchronize with Redis. This can be relational databases (e.g., PostgreSQL, MySQL) or other NoSQL databases, providing the initial data to populate Redis and enabling real-time data synchronization.
+</Card>
+
+<Card title="Change Data Capture (CDC)">  
+A pattern that tracks changes to data in a source database and applies corresponding changes to a target database, such as Redis, to maintain synchronization.  
+</Card>  
+
+<Card title="Debezium server">  
+An open-source distributed platform for CDC that RDI utilizes to capture and stream changes from various databases into Redis.  
+</Card>  
+
+<Card title="Data Pipeline (RDI Job)">  
+A configuration `.yaml` file that defines how data is extracted, transformed, and loaded from the source database to Redis. Each job specifies the source tables, transformation rules, and target data structures in Redis.   
+</Card>  
+
+<Card title="Target database">  
+The destination database where transformed data is stored. In RDI, this typically refers to the Redis database that receives synchronized data from the source systems.  
+</Card>  
+
+
+<Card title="Initial Cache Loading">  
+The initial process of populating the Redis cache with existing data from the source database before real-time synchronization begins, ensuring that the database starts with a complete and accurate dataset.  
+</Card>  
+
+
+<Card title="Change Streaming">  
+A secondary RDI process that occurs after the initial cache loading phase that starts the continuous flow of data changes from the source database to Redis, enabling real-time updates and synchronization.  
+</Card>  
+
+
+<Card title="config.yaml">  
+A configuration file in YAML format used by RDI to define settings. The primary configuration settings are hosted in two sections: sources and targets  
+</Card>
+
+<Card title="default-job.yaml">  
+A configuration file in YAML format used by RDI to define the job that applies a default transformation for tables that don't have a specific job file of their own.
+</Card>  
+
+
+<Card title="Collector">  
+The RDI component that host captures changes (CDC) from the source database and stages them for processing.
+</Card>  
+
+
+<Card title="Stream Processor">  
+The RDI component that processes staged data changes, transforming them as needed before writing to the target Redis database.  
+</Card>  
+
+
+<Card title="RDI metadata database">  
+A database that stores configuration and operational metadata for RDI, ensuring reliable data synchronization and monitoring. Sometimes also called the "Staging database" or simply "RDI database".
+</Card>  
+
+<Card title="Change Record">
+Refers to specific instances of data that is captured by the RDI collector 
+</Card>  
+
+<Card title="Nesting">
+The strategy RDI uses for denormalizing data. It is specifically designed to denormalize many-to-one relationships in the source database. It does this by representing the parent object (the "one") as a JSON document with the children (the "many") nested inside a JSON map attribute in the parent.
+</Card>  
+
+<Card title="Backpressure mechanism">
+The strategy RDI uses to slow or stop the flow of incoming data when there is an issue connecting or writing to the target database. Change data is held at the source until RDI clears the backlog and has enough free memory to resume streaming.
+</Card>  

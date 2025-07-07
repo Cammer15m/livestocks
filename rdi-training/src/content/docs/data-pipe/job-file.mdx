@@ -1,0 +1,134 @@
+---
+title: "RDI jobs"
+sidebar:
+  # Set a custom order for the link (lower numbers are displayed higher up)
+  order: 5 
+---
+import { Aside } from '@astrojs/starlight/components';
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+RDI can use user-defined job files to perform specific transformations to a change record (the data being captured by the collector) before it is transferred to the target Redis database. In this section, we will go over the structure of the file and how to define specific transformations.
+
+### The anatomy of a job file
+
+Let's take a look at an example job file. For this example we are still using the sample target database from earlier with a "Employee" table with fields for employee id (`empno`), first name (`fname`) , and last name (`lname`). 
+
+The example job below will do the following:
+
+- Write source data to a Redis hash with a key following the structure of `emp: <empno>` (e.g., `emp:12`)
+- Transform the change record data by adding a new key called `full_name` to the hash with a value of a concatenation of the first and last name from the record
+
+Here is what the job file looks like:
+
+```yaml
+source:
+  table: "*"
+  row_format: full
+transform:
+  - uses: add_field
+    with:
+      fields:
+        - field: full_name
+          language: jmespath
+          expression: concat([fname, ' ', lname])
+output:
+  - uses: redis.write
+    with:
+      data_type: hash
+      connection: target
+      key:
+        expression: concat(['emp:', empno])
+        language: jmespath
+```
+
+Notice that there are three main sections: source, transform, and output. Lets go through each of them.
+
+### Source definition
+
+The `source` property is a mandatory section that specifies the data items that you want to use. 
+
+```yaml
+source:
+  table: "*"
+  row_format: full
+```
+
+Here there are two properties we have added: 
+- `table`: This is the database table name. This refers to a table name supplied in config.yaml. A value of`"*"` acts as a wildcard, meaning "apply this transformation to all tables" as specified in the default job. If you want to target a specific table instead, you can replace `"*"` with the table's name.
+- `row_format`: This sets the format of the data to be transformed. This can take the values `data_only` (default) to use only the payload data, or `full` to use the complete change record. Using `full` gives you access to using the the expression key `.key` to get the generated Redis key as a string and to `before.<FIELD_NAME>` to get the value of a field before it was updated in the source database in a transformation.
+
+There are additional optional properties such as `server_name`, `db`, `schema`, and more. Details about them can be found in the <a href="https://redis.io/docs/latest/integrate/redis-data-integration/" target="_blank">RDI documentation</a>. 
+
+In our example above, the configuration means that when this job is run, our RDI pipeline will replicate all tables from the source database, and we will be able to access the entire entry (row values across all columns) for our transformation.
+
+### Transform
+
+The `transform` property, as its name suggests, is an optional section describing the transformation that the pipeline applies to the data before writing it to the target database. 
+
+```yaml
+transform:
+  - uses: add_field
+    with:
+      fields:
+        - field: full_name
+          language: jmespath
+          expression: concat([fname, ' ', lname])
+```
+
+We have two properties to cover: 
+
+- `uses`: This property defines the specific action (transformation) you want to perform on the data. In this case, we are using the `add_field` option to add a new field to the resulting hash. There are a variety of actions that can be performed including: `filter`, `map`, `remove_field`, `rename_field`. Examples for each can be found in the <a href="https://redis.io/docs/latest/integrate/redis-data-integration/reference/data-transformation/" target="_blank">RDI documentation</a>
+- `with`: This property hosts a subsection of options for the specific action defined using the `uses` property. The values will vary depending on the transformation being performed, however, note that you will have two options for the `language` property which can be either `jmespath` or `sql`. The option you pick will define how you write the value in the `expression` field.
+
+In our example, this job will add a new field called `full_name` with the value of a concatenated string of the users first name and last name (calculated in the `expression` property). 
+
+### Output
+
+The final portion of a job file is the output section. This is a mandatory section to specify the data structure(s) that RDI will write to the target database along with the text pattern for the key(s) that will access it.
+
+```yaml
+output:
+  - uses: redis.write
+    with:
+      data_type: hash
+      connection: target
+      key:
+        expression: concat(['emp:', empno])
+        language: jmespath
+``` 
+
+The structure of this section should look fairly similar to the transform section and includes the following:
+- `uses`: This must have the value `redis.write` to specify writing to a Redis data structure. There can be more than one block of this type in the same job
+- `with`: This section hosts a subsection of properties related to how and where the data will be added
+  - `data_type`:This property specifies the target data structure when writing data to Redis
+    <Aside>
+    RDI automatically converts data that has a Debezium JSON schema into Redis types. However, some Debezium types require special conversion. Visit the <a href="https://redis.io/docs/latest/integrate/redis-data-integration/data-pipelines/data-type-handling/" target="_blank">RDI documentation on data type handling</a> for more information.
+    </Aside>
+  - `key`: This property will override the default key for the data structure with custom logic defined by the `expression` and `language` property values
+
+In our example, the job file will output a Redis hash and replace the key for the hash with the value specified from the expression.
+
+Here is a before and after of the data (using random sample data): 
+<Tabs>
+  <TabItem label="Before">
+    ```json
+    //JSON
+      {
+        "empno": 50,
+        "fname": "Jon",
+        "lname": "Doe" 
+      }
+    ```
+  </TabItem>
+  <TabItem label="After">
+    Hash (emp:50)
+    | Field    | Value |
+    | -------- | ------- |
+    | empno  | 50  |
+    | fname   | "Jon"   |
+    | lname | "Doe"     |
+    | full_name    | "Jon Doe"   |
+  </TabItem>
+</Tabs>
+
+Now, let's move onto some information around denormalization of data.

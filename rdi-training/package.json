@@ -1,0 +1,24 @@
+{
+  "name": "rdi-training",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev --host --port 9080",
+    "start": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "postinstall": "astro telemetry disable"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@astrojs/node": "^8.3.4",
+    "@astrojs/starlight": "^0.28.6",
+    "astro": "^4.15.3",
+    "astro-embed": "^0.8.0",
+    "astro-google-fonts-optimizer": "^0.2.2",
+    "sharp": "^0.32.5",
+    "starlight-image-zoom": "^0.9.0",
+    "typescript": "^5.6.3"
+  }
+}

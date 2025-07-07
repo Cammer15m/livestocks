@@ -1,0 +1,257 @@
+---
+title: "Lab: Deploy a data pipeline"
+sidebar:
+  # Set a custom order for the link (lower numbers are displayed higher up)
+  order: 5 
+---
+{/* <div style="font-family: 'Space Grotesk', monospace;"> */}
+
+import { Steps } from '@astrojs/starlight/components';
+
+Alright, time to build and deploy your very first RDI job! 💪
+
+In this section, we will deploy RDI and observe records flowing into the target Redis database. We will set up RDI to ingest data from a provided Postgres-based music track database. You'll learn how to leverage the RDI transformation engine to add a new field (`NameUpper`), filter out records with a specific `GenreId`, and integrate table data.
+
+### Validate records in Postgres
+
+To start off, let's validate the current state of our data in Postgres and Redis.
+
+<Steps>
+
+1. Open <a href="http://localhost:3001/" target="_blank">SQLPad</a> and login using the following credentials: 
+    - Username: `admin@rl.org`
+    - Password: `redislabs`
+
+2. Select the "Ingest-Postgres-DB" database connection on the top left if it is not already selected. You should see something similar to the following image:
+
+   <div><img src="/doc/assets/ingest-sqlpad.png"/></div>
+
+3. Run a query against the table called `"Track"` and observe the current data present in the table. You'll notice some seed data already exists.
+
+   ```sql
+   SELECT * FROM "Track"
+   ```
+</Steps>
+
+Now that we know we have our Postgres data, time to set up our target database and RDI in Redis Insight!
+
+### Link the target database in Redis Insight
+
+Next, we will link the target Redis database and deploy RDI through Redis Insight.
+
+<Steps>
+1. Open <a href="http://localhost:5540/" target="_blank">Redis Insight</a>.
+2. Click **+ Add Redis database**.
+3. Click **Connection Settings** and configure the database settings with the corresponding values listed below — everything else can be left as is.
+    - **RDI Alias**: `target-db`
+    - **Host**: `172.16.22.21`
+    - **Port**: `12000`
+    - **Username**: `default`
+
+4. Click **Test Connection** on the bottom left of the pop out, and upon receiving a successful message, click on **Add Redis database**.
+
+5. Open the new database and observe there is no data currently present.
+</Steps>
+
+Now you have the Redis Software database (target-db) connected to Redis Insight. Time to deploy an RDI instance.
+
+### Deploy RDI in Redis Insight
+
+<Steps>
+1. Navigate back to the databases list page and on the top tabs on the left-hand side of Redis Insight, select the "Redis Data Integration" tab and then click **+ Endpoint**.
+    {/* <div><img style="width:70%;" src="/doc/assets/all-databases-page.png"/></div> */}
+    {/* Add screenshot 2 for rdi tab */}
+
+2. Configure the RDI endpoint with the corresponding values listed below.
+
+    - **RDI Alias:** `rdi_psql`  
+    - **URL:** `https://${HOST_IP}`
+    - **Username:**`default`
+    - **Password:** `redislabs`
+    
+3. You will receive a confirmation below once it has been successfully added.
+
+4. Select the newly linked RDI instance called `rdi_psql`.
+</Steps>
+
+Great! Now we have a connected RDI instance in Redis Insight. Time to configure a pipeline. 
+
+### Create a RDI Pipeline (config file)
+Let's first setup the configuration file. 
+
+<Steps>
+1. Once inside the RDI instance, select **Create New Pipeline** (right-most option) when prompted.
+
+2. Click **Cancel** when prompted to apply a template.
+
+3. Time to create our configuration file. Take a minute to try to write up one from scratch or start with the template Redis Insight provides. Remember the key properties of our setup: 
+    - Target Database
+      - host: `172.16.22.21`
+      - port: `12000`
+    - Source Database
+      - host: `172.16.22.7`
+      - port: `5432`
+      - database: `chinook`
+      - username: `postgres`
+      - password: `postgres`
+    
+    Here is a template to get you started:
+
+    ```yaml
+    targets:
+      target:
+        connection:
+          type: 
+          host: 
+          port: 
+
+    sources:
+      psql:
+        type: cdc
+        logging:
+          level: info
+        connection:
+          type: 
+          host: 
+          port: 
+          database: 
+          user: 
+          password: 
+    ```
+
+4. Confirm if the configuration file works by using the **Test Connection** button on the bottom right. If you can't quite get it to work, here is the configuration file solution code: 
+    
+    <details>
+      <summary>Configuration File Solution Code</summary>
+      ```YAML
+      targets:
+        target:
+          connection:
+            type: redis
+            host: 172.16.22.21
+            port: 12000
+
+      sources:
+        psql:
+          type: cdc
+          logging:
+            level: info
+          connection:
+            type: postgresql
+            host: 172.16.22.7
+            port: 5432
+            database: chinook
+            user: postgres
+            password: postgres
+      ```
+    </details>
+</Steps>
+
+### Create a RDI Pipeline (job file)
+
+Next, let's add a job.
+
+<Steps>
+1. Click **+**, next to the "Jobs" folder in the pipeline management menu on the left, put in a job name, and click the check icon. This should open an empty editor.
+
+2. Now it's time to create the job. Take some time to write a job that does the following:
+    - Targets the "Track" table from the source database
+    - Converts values to a Redis Hash with a key that follows the format of `<table_name> <trackid_field_value>` (e.g., `track:10`)
+    - Adds a new field called `NameUpper` which is a uppercase version of the `name` property of the track
+    - Filters out any new value that tries to get added to the Redis target database with a `GenreId` field with the value that is **not** `1` (e.g., A track with a `GenreId` of `3` would not be added to the database)
+
+    Here is a template to get you started: 
+
+    ```yaml
+    source:
+      table:
+
+    transform:
+      - uses: 
+        with:
+          field: 
+          expression: 
+          language:
+
+      - uses: 
+        with:
+          expression: 
+          language: 
+
+    output:
+      - uses: 
+        with:
+          data_type:
+          key:
+            expression:
+            language:
+    ```
+
+    If you're feeling stuck, here is the solution code to reference:
+    <details>
+      <summary>Job File Solution Code</summary>
+      ```yaml title="track-job.yaml"
+      source:
+        table: Track
+
+      transform:
+        - uses: add_field
+          with:
+            field: NameUpper
+            expression: upper("Name")
+            language: sql
+
+        - uses: filter
+          with:
+            expression: GenreId = 1
+            language: sql
+      
+      output:
+        - uses: redis.write
+          with:
+            data_type: hash
+            key:
+              expression: concat(['track:', TrackId])
+              language: jmespath
+      ```
+    </details>
+  
+
+3. Click **Deploy Pipeline**.
+
+    <div><img src="/doc/assets/deploy-pipeline.png"/></div>
+
+4. You will receive a confirmation below once it has been successfully deployed.
+
+    <div><img src="/doc/assets/rdi9.jpg" style="width: 70%; height: auto;" /></div>
+
+5. After some tim (it may take up to a few minutes), return to the target-db in Redis Insight and confirm the data has successfully been added to the Redis database. It should look similar to this:
+
+    <div><img src="/doc/assets/example-rdi-complete.png"/></div>
+  
+    Notice the values (and their structure) that are present and those that have been excluded by the RDI job.
+
+</Steps>
+
+### Simulate database additions (change streaming)
+
+At this point you were able to boot up RDI and get the data flowing into the target database. Next, let's simulate some basic database additions to see the RDI pipeline in action after during the change streaming phase. 
+
+<Steps>
+
+1. Open <a href="http://localhost:3001/" target="_blank">SQLPad</a>.
+2. Insert a row that meets the criteria (i.e. GenreId = 1).
+    ```sql
+      INSERT INTO "Track" ("TrackId", "Name", "AlbumId", "MediaTypeId", "GenreId", "Composer", "Milliseconds", "Bytes", "UnitPrice") VALUES (11, 'Slide It In', 5, 1, 1, 'Cloverdale', 210000, 5000000, 0.99);
+    ```
+3. Insert a row that does not meet the criteria (i.e. GenreId ≠ 1).
+    ```sql
+      INSERT INTO "Track" ("TrackId", "Name", "AlbumId", "MediaTypeId", "GenreId", "Composer", "Milliseconds", "Bytes", "UnitPrice") VALUES  (12, 'Master of Puppets', 6, 1, 2, 'James Hetfield, Lars Ulrich, Kirk Hammett, Cliff Burton', 515000, 10000000, 1.49);
+     ```
+
+4. Let's see the result by opening <a href="http://localhost:5540/" target="_blank">Redis Insight</a>.
+5. Click the "Redis Databases" tab on the top left if it is not already selected.
+6. Select `target-db` to view the database keys. You should only see one: your new entry with `GenreId = 1` (The track by Cloverdale). The other entry did not get captured because it did not meet the criteria.
+</Steps>
+
+Congratulations, you have successfully deployed RDI and your first pipeline! 🎉

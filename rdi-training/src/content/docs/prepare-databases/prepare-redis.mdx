@@ -1,0 +1,75 @@
+---
+title: "Lab: Prepare Redis databases"
+sidebar:
+  # Set a custom order for the link (lower numbers are displayed higher up)
+  order: 2 
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+In this section, we will prepare our Redis databases for RDI.  We will need to setup two databases:
+1. A target database
+2. A RDI metadata database
+
+Let's get started. 
+
+### Create the target database
+<Steps>
+
+1. Open the <a href="https://localhost:8443/" target="_blank">Redis Software</a> and login with the following credentials:
+
+   **Username**: <span class="no-link">admin@rl.org</span>
+
+   **Password**: redislabs
+
+2. Click **Create Database** on the top right hand corner and select the **Single Region** option.
+3. Configure the database settings with the corresponding values listed below — everything else can be left as is.
+
+   **Name:** `target-db`
+
+   **Port:** `12000`
+
+   **Memory limit:** `1 GB`
+   
+   **Modules:** Enable *"Search and Query"* and *"JSON"* modules
+
+4. Click **Create** to finalize the setup.
+
+</Steps>
+
+### Create the RDI database
+<Steps>
+1. Create another database by using the `+` icon next to the **Databases** tab on the left-hand menu. Again, select the **Single Region** option. 
+
+2. Configure the database settings with the corresponding values listed below — everything else can be left as is.
+
+   **Name:** `rdi-db`
+
+   **Port:** `12001`
+
+   **Memory limit:** `0.26 GB`
+
+   **Memory eviction:** 
+   
+      - Click the pencil icon to edit the setting
+
+      - Select **no eviction**
+
+   **Durability :** 
+
+      - Select **Persistence**
+
+      - Select `Append-only file every 1 sec` from the drop-down
+
+   **Access control:**
+
+      - Select **Password-only authentication**
+
+      - Set the password to `redislabs`.
+
+3. Click **Create** to complete the process.
+</Steps>
+
+And that's it. You have set up the two databases you will need on the Redis Software instance. One will serve as our target database (to store captured data), and the other as our RDI database (to store RDI metadata).
+
+Let's move onto finalizing the setup of the PostgreSQL source database.

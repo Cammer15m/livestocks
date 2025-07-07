@@ -1,0 +1,36 @@
+---
+title: "Introduction to RDI"
+sidebar:
+ # Set a custom order for the link (lower numbers are displayed higher up)
+ order: 1
+---
+import { Steps } from '@astrojs/starlight/components';
+
+### What is RDI?
+
+**Redis Data Integration or (RDI)** is a tool that runs inside Redis Software to seamlessly sync data between Redis and other databases.
+
+RDI helps Developers and Architects take data from their existing legacy databases (e.g., Oracle, PSQL) and easily synchronize that data into Redis without using code. That means slow apps can operate at real-time speeds without refactoring, writing new code, or exhausting integration efforts. It's all about transforming slow data into real-time data - which can apply to just about any use case.
+
+<div class="image-center"><img src="/doc/assets/rdi-overview.svg" /></div>
+
+### How does RDI work?
+
+You can think of RDI as a data streaming pipeline between any database (typically a disk based database struggling with slow performance) and Redis.
+
+Examine the following diagram to start to picture what a RDI setup looks like:
+
+<div class="image-center"><img src="/doc/assets/rdi-overview-2.svg" /></div>
+
+The following steps detail how RDI works at a high level:
+
+<Steps>
+1. First, RDI captures changes from a connected source database. For example, if we were working with a relational source database, RDI would capture the event of a new row being added to a table.
+2. Then, RDI records the changes it captured to an internal RDI database.
+3. Next, per user-defined transformation rules (more on this later), the data inside of the RDI database will be transformed into an acceptable Redis data structure. For example, data from the table will be transformed into a Redis hash or JSON object (don't worry, there are more data structures the data can be transformed into).
+4. Lastly, transformed data is then added to the Redis database, which can then be called by an app it is serving in real-time.
+</Steps>
+
+It's important to note that on the initial setup of RDI, there is a separate process for initially populating the Redis database. This occurs before the main data flow begins, and can take minutes or hours to complete, depending on the size of the source data. Once the initial data load is finished, the new Redis database contains a baseline dataset that will gradually evolve as new data is captured from the source.
+
+We will dive deeper into the internals of this process in the next section.
