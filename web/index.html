@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redis RDI Training</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: #dc382d; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .section { background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        .command { background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 4px; font-family: monospace; margin: 10px 0; }
+        .success { color: #38a169; font-weight: bold; }
+        .warning { color: #d69e2e; font-weight: bold; }
+        .step { margin: 15px 0; padding: 15px; border-left: 4px solid #dc382d; }
+        a { color: #dc382d; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 Redis RDI Training Environment</h1>
+        <p>Learn Redis Data Integration with hands-on labs</p>
+    </div>
+
+    <div class="section">
+        <h2>📋 Quick Start Guide</h2>
+        
+        <div class="step">
+            <h3>Step 1: Configure Redis Cloud</h3>
+            <p>Copy the environment template and add your Redis Cloud details:</p>
+            <div class="command">cp .env.template .env</div>
+            <p>Edit <code>.env</code> with your Redis Cloud connection details from your dashboard.</p>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Start the Environment</h3>
+            <div class="command">docker-compose -f docker-compose-cloud.yml up -d</div>
+            <p>This will start PostgreSQL, Redis Insight, RDI CLI, and load generator containers.</p>
+        </div>
+
+        <div class="step">
+            <h3>Step 3: Configure RDI Pipeline</h3>
+            <div class="command">docker exec -it rdi-cli redis-di configure</div>
+            <div class="command">docker exec -it rdi-cli redis-di deploy --config /config/config-cloud.yaml</div>
+            <div class="command">docker exec -it rdi-cli redis-di start</div>
+        </div>
+
+        <div class="step">
+            <h3>Step 4: Generate Test Data</h3>
+            <div class="command">docker exec -it rdi-loadgen python /scripts/generate_load.py</div>
+            <p>This will start generating data changes in PostgreSQL that RDI will sync to Redis.</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>🔗 Service Access</h2>
+        <ul>
+            <li><strong>Redis Insight:</strong> <a href="http://localhost:5540" target="_blank">http://localhost:5540</a> - Monitor your Redis Cloud data</li>
+            <li><strong>PostgreSQL:</strong> localhost:5432 - Source database</li>
+            <li><strong>This Dashboard:</strong> <a href="http://localhost:8080" target="_blank">http://localhost:8080</a></li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>🧪 Lab Exercises</h2>
+        
+        <h3>Lab 1: Basic Data Sync</h3>
+        <p>Verify data is flowing from PostgreSQL to Redis Cloud:</p>
+        <div class="command">docker exec -it rdi-cli redis-di status</div>
+        
+        <h3>Lab 2: Monitor Data Flow</h3>
+        <p>Use Redis Insight to see your data in Redis Cloud. Add your Redis Cloud connection in Redis Insight.</p>
+        
+        <h3>Lab 3: Test Change Data Capture</h3>
+        <p>Make changes in PostgreSQL and watch them appear in Redis:</p>
+        <div class="command">docker exec -it rdi-postgres psql -U postgres -d chinook -c "INSERT INTO \"Track\" (\"TrackId\", \"Name\", \"AlbumId\", \"MediaTypeId\", \"GenreId\", \"UnitPrice\") VALUES (9999, 'Test Track', 1, 1, 1, 0.99);"</div>
+    </div>
+
+    <div class="section">
+        <h2>🛠️ Troubleshooting</h2>
+        <ul>
+            <li><strong>Check RDI status:</strong> <code>docker exec -it rdi-cli redis-di status</code></li>
+            <li><strong>View RDI logs:</strong> <code>docker exec -it rdi-cli redis-di logs</code></li>
+            <li><strong>Check containers:</strong> <code>docker ps</code></li>
+            <li><strong>Restart RDI:</strong> <code>docker exec -it rdi-cli redis-di restart</code></li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>🎯 Success Criteria</h2>
+        <p class="success">✅ You've successfully completed the training when:</p>
+        <ul>
+            <li>RDI status shows "running"</li>
+            <li>Data appears in your Redis Cloud instance</li>
+            <li>Changes in PostgreSQL sync to Redis in real-time</li>
+        </ul>
+    </div>
+</body>
+</html>

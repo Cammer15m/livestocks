@@ -1,0 +1,27 @@
+connections:
+  # Redis Cloud target connection
+  target:
+    type: redis
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT}
+    password: ${REDIS_PASSWORD}
+    user: ${REDIS_USER}
+
+  # PostgreSQL source connection  
+  source:
+    type: postgresql
+    host: ${POSTGRES_HOST}
+    port: ${POSTGRES_PORT}
+    database: ${POSTGRES_DB}
+    user: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+
+applier:
+  # Error handling strategy
+  error_handling: dlq
+  # Dead letter queue max messages per stream
+  dlq_max_messages: 100
+  # Batch size for writing to target
+  batch: 50
+  # Duration in ms to wait before writing batch
+  duration: 1000
