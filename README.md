@@ -96,10 +96,25 @@ docker-compose down -v
 
 ### **Multi-Container Setup:**
 - 🗄️ **PostgreSQL Container**: Music store database with sample data
-- 🔍 **Redis Insight Container**: RDI configuration and monitoring
+- 🔍 **Redis Insight Container**: RDI configuration and monitoring (optional)
 - ⚙️ **RDI CLI Container**: Redis Data Integration management
 - 📊 **Load Generator Container**: Test data generation
 - 🌐 **Web Interface Container**: CTF instructions and dashboard
+
+### **Redis Insight Options:**
+
+**Option 1: Containerized Redis Insight (Default)**
+- ✅ Runs in Docker container
+- ✅ Accessible at `http://localhost:5540`
+- ✅ Easier setup, no additional downloads
+- ✅ Automatically configured
+
+**Option 2: External Redis Insight**
+- 🔗 Download from [redis.io/downloads](https://redis.io/downloads/#Redis_Insight)
+- 🖥️ Professional desktop application
+- ⚡ Better performance and more features
+- 🔧 Use `./configure_external_insight.sh` for connection details
+- 📱 Available for Windows, macOS, and Linux
 
 ### **External Requirements:**
 - 🔗 **Redis Cloud**: Your target Redis database (free account)

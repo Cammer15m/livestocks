@@ -138,6 +138,48 @@ if [ ! -f "rdi-config/config.yaml" ]; then
         echo ""
         read -p "Choose option (1, 2, or 3): " redis_option
     fi
+fi
+
+# Redis Insight Configuration
+echo ""
+echo "🔍 Redis Insight Configuration"
+echo "==============================="
+echo ""
+echo "Redis Insight provides a professional web interface for managing RDI pipelines."
+echo ""
+echo "Options:"
+echo "1. Use containerized Redis Insight (runs in Docker - easier setup)"
+echo "2. Use external Redis Insight (download from https://redis.io/downloads/#Redis_Insight)"
+echo ""
+read -p "Choose Redis Insight option (1 or 2): " insight_option
+
+case $insight_option in
+    1)
+        echo ""
+        echo "✅ Using containerized Redis Insight"
+        echo "   Will be available at: http://localhost:8001"
+        USE_CONTAINERIZED_INSIGHT=true
+        ;;
+    2)
+        echo ""
+        echo "✅ Using external Redis Insight"
+        echo ""
+        echo "📥 Download Redis Insight from: https://redis.io/downloads/#Redis_Insight"
+        echo "   - Available for Windows, macOS, and Linux"
+        echo "   - Professional desktop application"
+        echo "   - Connect to: localhost:6379 (if using local Redis) or your Redis Cloud instance"
+        echo ""
+        echo "⚠️  Note: You'll need to configure RDI connection manually in your external Redis Insight"
+        USE_CONTAINERIZED_INSIGHT=false
+        ;;
+    *)
+        echo "❌ Invalid option. Using containerized Redis Insight as default."
+        USE_CONTAINERIZED_INSIGHT=true
+        ;;
+esac
+
+# Check if RDI configuration exists
+if [ ! -f "rdi-config/config.yaml" ]; then
 
     case $redis_option in
         1)
@@ -258,11 +300,26 @@ fi
 
 echo "🔨 Building and starting containers..."
 
-# Start containers (with local Redis if configured)
-if [ "${COMPOSE_PROFILES}" = "local-redis" ]; then
-    docker-compose --profile local-redis up -d --build
+# Start containers (with conditional Redis Insight and local Redis)
+if [ "${USE_CONTAINERIZED_INSIGHT}" = "false" ]; then
+    # Exclude Redis Insight container
+    if [ "${COMPOSE_PROFILES}" = "local-redis" ]; then
+        docker-compose --profile local-redis up -d --build postgres rdi-cli load-generator web-interface
+    else
+        docker-compose up -d --build postgres rdi-cli load-generator web-interface
+    fi
+    echo ""
+    echo "ℹ️  Redis Insight container excluded - using external Redis Insight"
+    echo "   Download from: https://redis.io/downloads/#Redis_Insight"
 else
-    docker-compose up -d --build
+    # Include all containers including Redis Insight
+    if [ "${COMPOSE_PROFILES}" = "local-redis" ]; then
+        docker-compose --profile local-redis up -d --build
+    else
+        docker-compose up -d --build
+    fi
+    echo ""
+    echo "ℹ️  Redis Insight container included - available at http://localhost:8001"
 fi
 
 # Wait for services to be ready
@@ -280,12 +337,14 @@ else
     echo "❌ Not ready"
 fi
 
-# Check Redis Insight
-echo -n "Redis Insight: "
-if curl -s http://localhost:5540 > /dev/null; then
-    echo "✅ Ready"
-else
-    echo "❌ Not ready"
+# Check Redis Insight (only if containerized)
+if [ "${USE_CONTAINERIZED_INSIGHT}" = "true" ]; then
+    echo -n "Redis Insight: "
+    if curl -s http://localhost:5540 > /dev/null; then
+        echo "✅ Ready"
+    else
+        echo "❌ Not ready"
+    fi
 fi
 
 # Check RDI CLI
@@ -308,7 +367,14 @@ echo ""
 echo "🎯 Redis RDI CTF is ready!"
 echo ""
 echo "📊 CTF Dashboard: http://localhost:8080"
-echo "🔍 Redis Insight: http://localhost:5540"
+
+if [ "${USE_CONTAINERIZED_INSIGHT}" = "true" ]; then
+    echo "🔍 Redis Insight: http://localhost:5540"
+else
+    echo "🔍 Redis Insight: Use your external installation"
+    echo "   Download from: https://redis.io/downloads/#Redis_Insight"
+fi
+
 echo "🗄️ PostgreSQL: localhost:5432 (musicstore/postgres/postgres)"
 echo ""
 
