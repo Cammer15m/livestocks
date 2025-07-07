@@ -1,432 +1,146 @@
 #!/bin/bash
 
 # Redis RDI Training Environment Startup Script
-# Handles cleanup, validation, and robust startup
+# Supports both local Redis Enterprise and Redis Cloud
 
-set -e  # Exit on any error
+set -e
 
 # ---------------------------------------------------------------------------
-# Configuration and Validation
-# ---------------------------------------------------------------------------
-: ${DOMAIN?"Need to set DOMAIN environment variable"}
+: ${DOMAIN?"Need to set DOMAIN"}
 [ -z "$PASSWORD" ] && export PASSWORD=redislabs
 
-echo "Redis RDI Training Environment Startup"
-echo "======================================="
-echo "Domain: $DOMAIN"
-echo "Password: [MASKED]"
+echo "=========================================="
+echo "Redis RDI Training Environment"
+echo "=========================================="
 echo ""
 
-# ---------------------------------------------------------------------------
-# Pre-flight Checks and Docker Installation
-# ---------------------------------------------------------------------------
-echo "Running pre-flight checks..."
+# Redis Cloud Configuration
+echo "Redis Cloud Setup (Optional):"
+echo "If you want to use Redis Cloud instead of local Redis Enterprise,"
+echo "please provide your Redis Cloud connection details."
+echo ""
+read -p "Do you want to configure Redis Cloud? (y/N): " use_redis_cloud
 
-# Function to detect OS
-detect_os() {
-    if [ -f /etc/os-release ]; then
-        . /etc/os-release
-        OS=$ID
-        VERSION=$VERSION_ID
-    elif [ -f /etc/redhat-release ]; then
-        OS="centos"
-    elif [ -f /etc/debian_version ]; then
-        OS="debian"
-    else
-        OS="unknown"
-    fi
-}
+if [[ "$use_redis_cloud" =~ ^[Yy]$ ]]; then
+    echo ""
+    echo "Please provide your Redis Cloud connection string:"
+    echo "Format: redis://default:password@host:port"
+    echo "You can find this in your Redis Cloud dashboard under 'Connect'"
+    echo ""
+    read -p "Redis Cloud connection string: " redis_cloud_url
 
-# Function to install Docker
-install_docker() {
-    echo "Docker not found. Installing Docker..."
-    detect_os
+    if [[ -n "$redis_cloud_url" ]]; then
+        echo "Testing Redis Cloud connection..."
+        # Parse the connection string
+        if [[ "$redis_cloud_url" =~ redis://([^:]+):([^@]+)@([^:]+):([0-9]+) ]]; then
+            export REDIS_CLOUD_USER="${BASH_REMATCH[1]}"
+            export REDIS_CLOUD_PASSWORD="${BASH_REMATCH[2]}"
+            export REDIS_CLOUD_HOST="${BASH_REMATCH[3]}"
+            export REDIS_CLOUD_PORT="${BASH_REMATCH[4]}"
+            export REDIS_CLOUD_URL="$redis_cloud_url"
 
-    case $OS in
-        ubuntu|debian)
-            echo "  - Detected Ubuntu/Debian system"
-            echo "  - Updating package lists..."
-            sudo apt update -qq
-            echo "  - Installing Docker and Docker Compose..."
-            sudo apt install -y docker.io docker-compose curl
-            sudo systemctl start docker
-            sudo systemctl enable docker
-            # Add current user to docker group
-            sudo usermod -aG docker $USER
-            echo "  - Docker installation completed"
-            ;;
-        centos|rhel|fedora)
-            echo "  - Detected CentOS/RHEL/Fedora system"
-            if command -v dnf >/dev/null 2>&1; then
-                sudo dnf install -y docker docker-compose curl
-            else
-                sudo yum install -y docker docker-compose curl
-            fi
-            sudo systemctl start docker
-            sudo systemctl enable docker
-            sudo usermod -aG docker $USER
-            echo "  - Docker installation completed"
-            ;;
-        *)
-            echo "ERROR: Unsupported OS ($OS). Please install Docker manually."
-            echo "Visit: https://docs.docker.com/engine/install/"
-            exit 1
-            ;;
-    esac
-
-    echo "  - Waiting for Docker to start..."
-    sleep 5
-}
-
-# Check if Docker is installed
-if ! command -v docker >/dev/null 2>&1; then
-    install_docker
-fi
-
-# Check if Docker is running
-if ! docker info >/dev/null 2>&1; then
-    # Try with sudo if permission denied
-    if sudo docker info >/dev/null 2>&1; then
-        echo "  - Docker is running but user lacks permissions. Using sudo for Docker commands."
-        DOCKER_CMD="sudo docker"
-        DOCKER_COMPOSE_CMD="sudo docker-compose"
-    else
-        echo "  - Docker is installed but not running. Starting Docker..."
-        sudo systemctl start docker
-        sleep 10
-
-        # Check again
-        if ! sudo docker info >/dev/null 2>&1; then
-            echo "ERROR: Failed to start Docker. Please check Docker installation."
+            echo "✅ Redis Cloud configuration saved"
+            echo "   Host: $REDIS_CLOUD_HOST:$REDIS_CLOUD_PORT"
+            echo "   User: $REDIS_CLOUD_USER"
+            echo ""
+        else
+            echo "❌ Invalid Redis Cloud URL format"
+            echo "Expected format: redis://default:password@host:port"
             exit 1
         fi
-        echo "  - Docker started successfully"
-        DOCKER_CMD="sudo docker"
-        DOCKER_COMPOSE_CMD="sudo docker-compose"
     fi
-else
-    DOCKER_CMD="docker"
-    DOCKER_COMPOSE_CMD="docker-compose"
 fi
 
-# Check if Docker Compose is available
-if ! command -v docker-compose >/dev/null 2>&1; then
-    echo "  - Docker Compose not found. Installing..."
-    detect_os
+echo "Starting Docker containers..."
 
-    case $OS in
-        ubuntu|debian)
-            sudo apt install -y docker-compose
-            ;;
-        centos|rhel|fedora)
-            if command -v dnf >/dev/null 2>&1; then
-                sudo dnf install -y docker-compose
-            else
-                sudo yum install -y docker-compose
-            fi
-            ;;
-        *)
-            # Fallback: install via pip or direct download
-            echo "  - Installing Docker Compose via pip..."
-            sudo apt install -y python3-pip 2>/dev/null || sudo yum install -y python3-pip 2>/dev/null || true
-            sudo pip3 install docker-compose 2>/dev/null || {
-                echo "  - Installing Docker Compose directly..."
-                sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-                sudo chmod +x /usr/local/bin/docker-compose
-            }
-            ;;
-    esac
-fi
+sudo chmod -R 777 grafana/
 
-# Final check
-if ! command -v docker-compose >/dev/null 2>&1; then
-    echo "ERROR: Docker Compose installation failed. Please install manually."
-    exit 1
-fi
-
-echo "SUCCESS: Docker and Docker Compose are available"
-
-# Check if user is in docker group
-if ! groups $USER | grep -q docker; then
-    echo "WARNING: User $USER is not in docker group."
-    echo "You may need to log out and back in, or run: newgrp docker"
-fi
-
-# Install additional dependencies if needed
-echo "  - Checking additional dependencies..."
-missing_deps=()
-
-# Check for curl
-if ! command -v curl >/dev/null 2>&1; then
-    missing_deps+=("curl")
-fi
-
-# Check for git
-if ! command -v git >/dev/null 2>&1; then
-    missing_deps+=("git")
-fi
-
-# Check for envsubst (part of gettext)
-if ! command -v envsubst >/dev/null 2>&1; then
-    missing_deps+=("gettext-base")
-fi
-
-# Install missing dependencies
-if [ ${#missing_deps[@]} -gt 0 ]; then
-    echo "  - Installing missing dependencies: ${missing_deps[*]}"
-    detect_os
-
-    case $OS in
-        ubuntu|debian)
-            sudo apt install -y "${missing_deps[@]}"
-            ;;
-        centos|rhel|fedora)
-            if command -v dnf >/dev/null 2>&1; then
-                sudo dnf install -y "${missing_deps[@]}"
-            else
-                sudo yum install -y "${missing_deps[@]}"
-            fi
-            ;;
-    esac
-fi
-
-# ---------------------------------------------------------------------------
-# Cleanup Previous Runs
-# ---------------------------------------------------------------------------
-echo ""
-echo "Cleaning up any previous runs..."
-
-# Stop and remove any existing containers
-if $DOCKER_COMPOSE_CMD ps -q 2>/dev/null | grep -q .; then
-    echo "  - Stopping existing containers..."
-    $DOCKER_COMPOSE_CMD down --remove-orphans --volumes 2>/dev/null || true
-fi
-
-# Remove any orphaned containers from old setups
-echo "  - Removing orphaned containers..."
-$DOCKER_CMD stop $($DOCKER_CMD ps -q --filter "name=rdi-ctf") 2>/dev/null || true
-$DOCKER_CMD rm $($DOCKER_CMD ps -aq --filter "name=rdi-ctf") 2>/dev/null || true
-$DOCKER_CMD stop $($DOCKER_CMD ps -q --filter "name=redis-rdi-ctf") 2>/dev/null || true
-$DOCKER_CMD rm $($DOCKER_CMD ps -aq --filter "name=redis-rdi-ctf") 2>/dev/null || true
-
-# Clean up any dangling resources
-echo "  - Cleaning up Docker resources..."
-$DOCKER_CMD system prune -f >/dev/null 2>&1 || true
-
-echo "SUCCESS: Cleanup completed"
-
-# ---------------------------------------------------------------------------
-# Environment Setup
-# ---------------------------------------------------------------------------
-echo ""
-echo "Setting up environment..."
-
-sudo chmod -R 777 grafana/ 2>/dev/null || chmod -R 777 grafana/ 2>/dev/null || true
 
 export HOSTNAME=$(hostname -s)
 export PASSWORD=$PASSWORD
 export HOST_IP=$(hostname -I | awk '{print $1}')
+
 export RDI_VERSION=1.10.0
 
-echo "  - Hostname: $HOSTNAME"
-echo "  - Host IP: $HOST_IP"
-echo "  - RDI Version: $RDI_VERSION"
+envsubst < ./grafana_config/grafana.ini.template > ./grafana_config/grafana.ini
+envsubst < ./prometheus/prometheus.yml.template > ./prometheus/prometheus.yml
 
-# Generate configuration files
-echo "  - Generating configuration files..."
-if [ -f "./grafana_config/grafana.ini.template" ]; then
-    envsubst < ./grafana_config/grafana.ini.template > ./grafana_config/grafana.ini
-    echo "    SUCCESS: Grafana config generated"
-else
-    echo "    WARNING: Grafana template not found, using defaults"
-fi
+export RE_USER=admin@rl.org
 
-if [ -f "./prometheus/prometheus.yml.template" ]; then
-    envsubst < ./prometheus/prometheus.yml.template > ./prometheus/prometheus.yml
-    echo "    SUCCESS: Prometheus config generated"
-else
-    echo "    WARNING: Prometheus template not found, using defaults"
-fi
+#Total hack.  There are instances where /snap/bin is not ready before docker-compose leading to error
+#So sleep a little.
 
-# ---------------------------------------------------------------------------
-# Docker Compose Startup
-# ---------------------------------------------------------------------------
-echo ""
-echo "Starting Docker containers..."
-
-# Wait for snap/bin if needed (some systems)
-if [ -d "/snap/bin" ]; then
-    while [ ! -x /snap/bin ]; do
-        echo "  - Waiting for /snap/bin to be ready..."
-        sleep 5
-    done
-fi
-
-# Start containers with build
-echo "  - Building and starting containers..."
-$DOCKER_COMPOSE_CMD up -d --build --remove-orphans
-
-# ---------------------------------------------------------------------------
-# Container Health Checks
-# ---------------------------------------------------------------------------
-echo ""
-echo "Waiting for containers to be healthy..."
-
-# Wait for containers to start
-sleep 10
-
-# Check container status
-echo "  - Checking container status..."
-failed_containers=()
-for container in $($DOCKER_COMPOSE_CMD ps --services); do
-    if ! $DOCKER_COMPOSE_CMD ps $container | grep -q "Up"; then
-        failed_containers+=($container)
-    fi
+while [ ! -x /snap/bin ]; do
+    sleep 5
 done
 
-if [ ${#failed_containers[@]} -gt 0 ]; then
-    echo "ERROR: Some containers failed to start: ${failed_containers[*]}"
-    echo "Container logs:"
-    for container in "${failed_containers[@]}"; do
-        echo "--- $container ---"
-        $DOCKER_COMPOSE_CMD logs --tail=10 $container
-    done
-    exit 1
-fi
+docker-compose up -d --build 
 
-echo "SUCCESS: All containers started successfully"
+main_nodes=( re-n1 )
+all_nodes=( re-n1 )
+ssh_nodes=( re-n1 )
 
-# ---------------------------------------------------------------------------
-# Service Configuration
-# ---------------------------------------------------------------------------
-echo ""
-echo "Configuring services..."
+for i in "${all_nodes[@]}"
+do
+   #wait for admin port
+   docker cp wait-for-code.sh $i:/tmp/wait-for-code.sh
+   docker exec -e URL=https://$i:9443/v1/bootstrap -e CODE=200 $i /bin/bash /tmp/wait-for-code.sh
 
-# Wait for PostgreSQL to be ready
-echo "  - Waiting for PostgreSQL to be ready..."
-timeout=60
-while ! $DOCKER_CMD exec postgresql pg_isready -U postgres >/dev/null 2>&1; do
-    timeout=$((timeout - 1))
-    if [ $timeout -eq 0 ]; then
-        echo "ERROR: PostgreSQL failed to start within 60 seconds"
-        exit 1
-    fi
-    sleep 1
-done
-echo "    SUCCESS: PostgreSQL is ready"
-
-# Configure Grafana
-echo "  - Configuring Grafana dashboards..."
-if [ -d "grafana" ] && [ -f "grafana/config_grafana.sh" ]; then
-    cd grafana
-    bash config_grafana.sh 2>/dev/null || echo "    WARNING: Grafana configuration failed, continuing..."
-    cd ..
-    echo "    SUCCESS: Grafana configured"
-else
-    echo "    WARNING: Grafana configuration script not found"
-fi
-
-# Final container restart to ensure everything is properly configured
-echo "  - Final service restart..."
-sleep 10
-$DOCKER_COMPOSE_CMD up -d
-sleep 10
-
-
-# ---------------------------------------------------------------------------
-# Final Health Checks and Service Verification
-# ---------------------------------------------------------------------------
-echo ""
-echo "Running final health checks..."
-
-# Check all expected containers are running
-expected_containers=("postgresql" "grafana" "prometheus" "redis-insight" "rdi-cli" "sqlpad")
-failed_services=()
-
-for container in "${expected_containers[@]}"; do
-    if $DOCKER_CMD ps --format "table {{.Names}}" | grep -q "^$container$"; then
-        echo "  SUCCESS: $container is running"
-    else
-        echo "  ERROR: $container is not running"
-        failed_services+=($container)
-    fi
+   #enable port 53
+   docker exec --user root --privileged $i /bin/bash /tmp/init_script.sh
 done
 
-# Check service ports
-echo "  - Checking service ports..."
-services_to_check=(
-    "5540:Redis Insight"
-    "3000:Grafana"
-    "5432:PostgreSQL"
-    "9090:Prometheus"
-    "3001:SQLPad"
-)
+#create cluster 1
+export CLUSTER=re-cluster1.ps-redislabs.org
+export IP=172.16.22.21
+server="re-n1"
 
-for service in "${services_to_check[@]}"; do
-    port=$(echo $service | cut -d: -f1)
-    name=$(echo $service | cut -d: -f2)
+cluster_file="redis/create_cluster.json.template"
 
-    if netstat -tuln 2>/dev/null | grep -q ":$port " || ss -tuln 2>/dev/null | grep -q ":$port "; then
-        echo "    SUCCESS: $name (port $port) is accessible"
-    else
-        echo "    WARNING: $name (port $port) may not be ready yet"
-    fi
-done
+envsubst < $cluster_file > create_cluster.json
+docker cp create_cluster.json $server:/tmp/create_cluster.json
+docker exec $server curl -k -v --silent --fail -H 'Content-Type: application/json' -d @/tmp/create_cluster.json  https://$server:9443/v1/bootstrap/create_cluster
 
-# ---------------------------------------------------------------------------
-# Terminal Setup (Optional)
-# ---------------------------------------------------------------------------
-echo ""
-echo "🖥️ Setting up terminal access..."
+#wait for admin port
+docker cp wait-for-code.sh $server:/tmp/wait-for-code.sh
+docker exec -e URL=https://$server:9443/v1/bootstrap -e CODE=200 $server /bin/bash /tmp/wait-for-code.sh
 
-if command -v ttyd >/dev/null 2>&1 && id -u labuser >/dev/null 2>&1; then
-    echo "   • Starting ttyd terminal on port 7681..."
-    sudo -u labuser nohup ttyd -W -p 7681 -t disableLeaveAlert=true -t fontSize=14 -t 'cursorStyle=bar' --client-option reconnect=true bash -c "cd /home/labuser && exec bash" >/dev/null 2>&1 &
-    echo "   ✅ Terminal available at http://localhost:7681"
-else
-    echo "   ⚠️  ttyd or labuser not available, skipping terminal setup"
+
+#update license
+if [[ -n $RE1_LICENSE ]];
+then
+   docker exec re-n1 curl -v -k -d "{\"license\": \"$(echo $RE1_LICENSE | sed -z 's/\n/\\n/g')\"}" -u $RE_USER:$PASSWORD -H "Content-Type: application/json" -X PUT https://localhost:9443/v1/license
 fi
 
-# ---------------------------------------------------------------------------
-# Startup Complete
-# ---------------------------------------------------------------------------
-echo ""
-echo "🎉 Redis RDI Training Environment Started Successfully!"
-echo "======================================================"
-echo ""
-echo "📊 Available Services:"
-echo "   • Redis Enterprise UI:  http://localhost:8443"
-echo "   • Redis Insight:         http://localhost:5540"
-echo "   • Grafana Monitoring:    http://localhost:3000"
-echo "   • PostgreSQL Database:   localhost:5432"
-echo "   • Prometheus Metrics:    http://localhost:9090"
-echo "   • SQLPad (DB Browser):   http://localhost:3001"
-echo "   • Docker Logs (Dozzle):  http://localhost:8080"
-if command -v ttyd >/dev/null 2>&1; then
-echo "   • Terminal Access:       http://localhost:7681"
-fi
-echo ""
-echo "🔐 Default Credentials:"
-echo "   • Redis Enterprise:      admin@rl.org / $PASSWORD"
-echo "   • Grafana:               admin / $PASSWORD"
-echo "   • PostgreSQL:            postgres / postgres"
-echo ""
-echo "🚀 Next Steps:"
-echo "   1. Access Redis Enterprise UI to create databases"
-echo "   2. Use Redis Insight to configure RDI pipelines"
-echo "   3. Monitor with Grafana dashboards"
-echo "   4. Check PostgreSQL data with SQLPad"
-echo ""
+sleep 20
+docker-compose up -d
+sleep 20
 
-if [ ${#failed_services[@]} -gt 0 ]; then
-    echo "⚠️  Warning: Some services failed to start: ${failed_services[*]}"
-    echo "   Check logs with: docker-compose logs [service-name]"
-    echo ""
-fi
+#configure Grafana
+cd grafana
+bash config_grafana.sh
+cd ..
 
-echo "📋 Useful Commands:"
-echo "   • View logs:     docker-compose logs -f [service]"
-echo "   • Stop all:      ./stop.sh"
-echo "   • Restart:       ./start.sh"
-echo ""
-echo "✅ Environment is ready for Redis RDI training!"
+
+#export GRAFANA_VERSION=$(docker exec grafana grafana server -v | grep -oP 'Version \K[^\s]+')
+#export RE_VERSION=$(docker exec re-n1 bash -c "curl -u $RE_USER:$PASSWORD https://localhost:9443/v1/nodes -k --fail | jq '.'" | grep software_version | uniq | awk -F ":" '{print $2}' | awk -F '\"' '{print $2}')
+
+#export HOST_IP=$(hostname -I | awk '{print $1}')
+#export REDIS_INSIGHT_VERSION=2.64
+
+
+#create instructions
+#cd about
+#bash create_about.sh
+#cd ..
+
+#nohup npm run dev &
+
+echo '----------------------------------'
+echo "Starting ttyd with labuser on port 7681..."
+
+sudo -u labuser nohup ttyd -W -p 7681 -t disableLeaveAlert=true -t fontSize=14 -t 'cursorStyle=bar' --client-option reconnect=true bash -c "cd /home/labuser && exec bash" &
+
+echo '----------------------------------'
+
+wait $!

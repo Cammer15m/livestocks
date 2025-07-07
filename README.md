@@ -1,49 +1,147 @@
-# Redis RDI Training Environment 🚀
+# Redis RDI Training Environment
 
-Welcome to the **Redis Data Integration (RDI) Training Environment**! This professional setup provides hands-on experience with real Redis RDI, PostgreSQL, and Redis Enterprise.
+A complete Redis Data Integration (RDI) training environment using Docker containers. This setup provides hands-on experience with Redis Enterprise, PostgreSQL, and real-time data integration pipelines.
 
-## 🎯 What You'll Learn
+## Quick Start
 
-- **Real Redis RDI**: Work with actual Redis Data Integration tools
-- **Production Environment**: Redis Enterprise cluster with monitoring
-- **Data Pipeline Management**: Configure and manage real data pipelines
-- **Professional Tools**: Redis Insight, Grafana monitoring, Prometheus metrics
+### Prerequisites
+- Docker and Docker Compose
+- Git
+- 4GB+ RAM recommended
+- 10GB+ free disk space
 
-## 🐳 Quick Start
+### Setup
 
-**Professional Redis RDI training environment with Redis Enterprise!**
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Cammer15m/Redis_RDI_CTF.git
+   cd Redis_RDI_CTF
+   ```
 
-### **Prerequisites**
-- **RAM**: 4GB minimum, 8GB recommended
-- **Disk**: ~3GB free space
-- **Redis Cloud Account**: Free at [redis.com/try-free](https://redis.com/try-free/)
-- **No Internet Required**: All dependencies included in repository
+2. **Start the environment:**
+   ```bash
+   DOMAIN=localhost ./start.sh
+   ```
 
-### **🎯 Quick Setup**
+3. **Access the services:**
+   - **Redis Enterprise UI**: http://localhost:8443
+   - **Redis Insight**: http://localhost:5540
+   - **Grafana**: http://localhost:3000
+   - **PostgreSQL**: localhost:5432
+   - **Prometheus**: http://localhost:9090
+   - **SQLPad**: http://localhost:3001
+   - **Docker Logs**: http://localhost:8080
+
+## Default Credentials
+
+| Service | Username | Password | Notes |
+|---------|----------|----------|-------|
+| **Redis Enterprise** | admin@rl.org | redislabs | Main Redis cluster management |
+| **Grafana** | admin | redislabs | Monitoring dashboards |
+| **PostgreSQL** | postgres | postgres | Source database |
+| **SQLPad** | admin@rl.org | redislabs | Database query interface |
+
+## Redis Cloud Integration
+
+This environment supports both local Redis Enterprise and Redis Cloud:
+
+### Option 1: Redis Cloud (Recommended for Production)
+
+1. **Create Redis Cloud Account:**
+   - Sign up at https://redis.io/try-free/
+   - Create a new database
+   - Note your connection details
+
+2. **Get Connection String:**
+   - In Redis Cloud dashboard, click your database
+   - Click "Connect" → "Redis CLI"
+   - Copy the connection string: `redis://default:xxxxx@redis-xxxxx.cxx.region.ec2.redns.redis-cloud.com:port`
+
+3. **Start with Redis Cloud:**
+   ```bash
+   DOMAIN=localhost ./start.sh
+   # When prompted, choose 'y' for Redis Cloud
+   # Paste your connection string when asked
+   ```
+
+### Option 2: Local Redis Enterprise
 ```bash
-# Clone the repository
-git clone https://github.com/Cammer15m/Redis_RDI_CTF
-cd Redis_RDI_CTF
-
-# Start all services (Docker will be installed automatically if missing)
-export DOMAIN=localhost
-./start.sh
-
-# The script will:
-# ✅ Install Docker automatically if needed
-# ✅ Build all containers locally (no external downloads)
-# ✅ Start PostgreSQL with sample data
-# ✅ Start Redis Insight for Redis Cloud connection
-# ✅ Start RDI CLI for data integration
-# ✅ Start monitoring and database tools
+DOMAIN=localhost ./start.sh
+# When prompted, choose 'n' for local Redis Enterprise
 ```
 
-### **🌐 Service Access**
-- **Redis Insight**: http://localhost:5540 (Connect to Redis Cloud)
-- **Monitoring Dashboard**: http://localhost:3000
-- **Database Browser**: http://localhost:3001 (SQLPad)
-- **Metrics**: http://localhost:9090 (Prometheus)
-- **PostgreSQL**: localhost:5432 (postgres/postgres/postgres)
+## Using Redis Insight with Redis Cloud
+
+1. **Access Redis Insight:** http://localhost:5540
+2. **Add Redis Cloud Connection:**
+   - Click "Add Redis Database"
+   - Choose "Connect to a Redis Database"
+   - Enter your Redis Cloud connection details:
+     - **Host:** redis-xxxxx.cxx.region.ec2.redns.redis-cloud.com
+     - **Port:** Your port number
+     - **Username:** default (or your username)
+     - **Password:** Your Redis Cloud password
+3. **Connect and Explore:** Browse your Redis Cloud data through the web interface
+
+## RDI Configuration
+
+### Configure RDI with Redis Cloud
+
+1. **Access the RDI container:**
+   ```bash
+   docker exec -it loadgen bash
+   ```
+
+2. **Configure RDI to use Redis Cloud:**
+   ```bash
+   # Set up RDI configuration
+   redis-di configure --rdi-host localhost:13000 --rdi-password redislabs
+
+   # Configure target Redis (your Redis Cloud instance)
+   redis-di config set target.host your-redis-cloud-host
+   redis-di config set target.port your-redis-cloud-port
+   redis-di config set target.password your-redis-cloud-password
+   redis-di config set target.user default
+   ```
+
+3. **Create and deploy data pipeline:**
+   ```bash
+   # Create pipeline configuration
+   redis-di create-pipeline --name postgres-to-redis
+
+   # Deploy the pipeline
+   redis-di deploy
+
+   # Start data integration
+   redis-di start
+   ```
+
+4. **Monitor data flow:**
+   - Use Redis Insight to see data flowing into Redis Cloud
+   - Check Grafana dashboards for pipeline metrics
+   - View PostgreSQL source data in SQLPad
+
+## Management Commands
+
+```bash
+# Start environment
+DOMAIN=localhost ./start.sh
+
+# Stop all services
+./stop.sh
+
+# View logs
+docker-compose logs -f [service-name]
+
+# Access RDI CLI
+docker exec -it loadgen bash
+
+# Check service status
+docker-compose ps
+
+# Reset environment
+docker-compose down -v && DOMAIN=localhost ./start.sh
+```
 
 ### **🔧 Configure RDI**
 ```bash

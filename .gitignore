@@ -1,77 +1,34 @@
-# Project Summary and Documentation Files
-*SUMMARY*.md
-*SETUP*.md
-*TEST*.md
-*GUIDE*.md
-*INSTRUCTIONS*.md
+**/bin/
+**/obj/
+node_modules
+.vs
+csharp.sln.DotSettings.user
 
-# User Configuration Files
-user_config.json
-*.json.example
+rdi-training/grafana/tmp*
+rdi-training/rdi_install
 
-# Analytics and Monitoring Files
-ctf_analytics.py
-import_dashboard.py
-redis-rdi-ctf-dashboard.json
-
-# Temporary and Test Files
-*.tmp
-*.temp
-test_*
-*_test_*
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Virtual Environments
-venv/
-env/
-ENV/
-.venv/
-.env/
-
-# IDE and Editor Files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-
-# Logs
+code/**/.settings
+code/**/target
+.classpath
+access.log
 *.log
-logs/
-*.out
+.vscode
+builds
+*.DS_Store
+.sshtmp
+builddir
+Session.vim
+*redis-di
+*redis-di.tgz
+*redisgears-jvm.tgz
+*redisgears-python.tgz
+*create_cluster.json
+*join_cluster.json
+*grafana.db
+*about.index.html
+*create_gears_db.json
+*demo_postgresql.json
+*dist
 
-# Database Files
-*.db
-*.sqlite
-*.sqlite3
-
-# Docker
-.dockerignore
-docker-compose.override.yml
-
-# OS Files
-Thumbs.db
-.DS_Store
+#src/content/**/*.mdx
+#src/content/**/index.md
