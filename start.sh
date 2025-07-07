@@ -100,7 +100,7 @@ envsubst < ./prometheus/prometheus.yml.template > ./prometheus/prometheus.yml 2>
 complete_step 2 "Services configured"
 
 # Step 3: Starting Docker containers
-show_progress 3 10 "Starting Docker containers (optimized parallel build)..."
+show_progress 3 10 "Starting Docker containers (using pre-built images)..."
 
 #Total hack.  There are instances where /snap/bin is not ready before docker-compose leading to error
 #So sleep a little.
@@ -110,66 +110,15 @@ while [ ! -x /snap/bin ]; do
 done
 
 echo ""
-echo "Step 3a: Checking for existing container images..."
-RE_IMAGE_EXISTS=$(docker images -q redislabs-ubuntu 2>/dev/null)
-APP_IMAGE_EXISTS=$(docker images -q from-repo_app 2>/dev/null)
-LOADGEN_IMAGE_EXISTS=$(docker images -q loadgen 2>/dev/null)
-
-if [ -n "$RE_IMAGE_EXISTS" ]; then
-    echo "  ✓ Redis Enterprise image already exists, skipping build"
-    RE_SKIP_BUILD=true
-else
-    echo "  - Redis Enterprise image needs to be built"
-    RE_SKIP_BUILD=false
-fi
-
-echo "Step 3b: Starting pre-built containers first..."
+echo "Step 3a: Starting pre-built containers..."
 # Start containers that don't need building first
 docker-compose up -d grafana docs prometheus redis-insight-2 dozzle postgresql postgres-exporter sqlpad
 
-if [ "$RE_SKIP_BUILD" = "false" ]; then
-    echo "Step 3c: Building Redis Enterprise container (this takes the longest)..."
-    show_progress 3 10 "Building Redis Enterprise container (5-10 minutes)..."
-    docker-compose up -d --build re-n1 &
-    RE_BUILD_PID=$!
-else
-    echo "Step 3c: Starting Redis Enterprise container (using existing image)..."
-    docker-compose up -d re-n1 &
-    RE_BUILD_PID=$!
-fi
+echo "Step 3b: Starting Redis Enterprise (using official image)..."
+docker-compose up -d re-n1
 
-echo "Step 3c: Building other containers in parallel..."
-docker-compose up -d --build app loadgen &
-OTHER_BUILD_PID=$!
-
-echo "Waiting for builds to complete..."
-echo "  - Redis Enterprise build running in background (PID: $RE_BUILD_PID)"
-echo "  - Other containers building (PID: $OTHER_BUILD_PID)"
-
-# Wait for other containers first (should be faster)
-wait $OTHER_BUILD_PID
-echo "  ✓ App and loadgen containers ready"
-
-# Check Redis Enterprise progress with timeout
-echo "  - Still waiting for Redis Enterprise container..."
-TIMEOUT=1800  # 30 minutes max
-ELAPSED=0
-while kill -0 $RE_BUILD_PID 2>/dev/null; do
-    if [ $ELAPSED -ge $TIMEOUT ]; then
-        echo "  ⚠ Redis Enterprise build taking longer than expected (30+ minutes)"
-        echo "  ⚠ This may indicate a problem. Check 'docker logs re-n1' for details."
-        break
-    fi
-    sleep 30
-    ELAPSED=$((ELAPSED + 30))
-    echo "  - Redis Enterprise still building... (${ELAPSED}s elapsed)"
-done
-
-if kill -0 $RE_BUILD_PID 2>/dev/null; then
-    echo "  - Continuing with Redis Enterprise build in background..."
-else
-    echo "  ✓ Redis Enterprise container build complete"
-fi
+echo "Step 3c: Building remaining containers..."
+docker-compose up -d --build app loadgen
 
 echo "Step 3d: Final container startup..."
 docker-compose up -d

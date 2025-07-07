@@ -94,7 +94,7 @@ services:
         ipv4_address: 172.16.22.15
 
   re-n1:
-    user: 'redislabs:redislabs'
+    image: redislabs/redis-enterprise:latest
     container_name: re-n1
     hostname: re-n1
     cap_add:
@@ -111,9 +111,6 @@ services:
     networks:
       default:
         ipv4_address: 172.16.22.21
-    build:
-      context: .
-      dockerfile: redislabs-ubuntu.dockerfile
 
   postgresql:
     image: 'postgres:15.3-bullseye'
