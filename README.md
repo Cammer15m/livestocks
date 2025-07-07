@@ -19,17 +19,30 @@ Welcome to the **Redis Data Integration (RDI) Capture The Flag** challenge! This
 - **Disk**: ~1GB free space
 - **Port**: 8080 available
 
-### **Option 1: With Redis Cloud (Recommended)**
+### **🎯 Smart Startup (Recommended)**
 ```bash
-# Clone and start
+# Clone and start with optimal experience
 git clone https://github.com/Cammer15m/Redis_RDI_CTF
 cd Redis_RDI_CTF
 
+# One-command startup with verification
+./start_ctf.sh
+
+# That's it! The script will:
+# ✅ Show startup logs for verification
+# ✅ Auto-detect success/failure
+# ✅ Keep container running in background if successful
+# ✅ Give you access URL when ready
+```
+
+### **Option 1: With Redis Cloud**
+```bash
 # Configure Redis connection (get free account at redis.com)
+cp .env.example .env
 # Edit .env with your Redis Cloud connection details
 
 # Start the CTF
-docker-compose up --build
+./start_ctf.sh
 
 # Access the CTF
 open http://localhost:8080
@@ -37,12 +50,8 @@ open http://localhost:8080
 
 ### **Option 2: With Local Redis**
 ```bash
-# Clone and start with local Redis
-git clone https://github.com/Cammer15m/Redis_RDI_CTF
-cd Redis_RDI_CTF
-
 # Start CTF + local Redis
-docker-compose --profile local-redis up --build
+docker-compose --profile local-redis up -d --build
 
 # Access the CTF
 open http://localhost:8080
@@ -213,11 +222,27 @@ Redis_RDI_CTF/
 
 ### **Container Won't Start**
 ```bash
-# Check logs
+# Use the smart startup script (recommended)
+./start_ctf.sh
+
+# If that fails, check logs manually
 docker logs redis-rdi-ctf
 
 # Rebuild container
 docker-compose up --build --force-recreate
+```
+
+### **Startup Script Issues**
+```bash
+# Make sure script is executable
+chmod +x start_ctf.sh
+
+# Run with verbose output
+bash -x start_ctf.sh
+
+# Manual startup if script fails
+docker-compose up -d --build
+docker logs -f redis-rdi-ctf
 ```
 
 ### **Can't Connect to Redis**
