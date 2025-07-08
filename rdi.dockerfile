@@ -12,9 +12,16 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     postgresql-client \
     sudo \
+    systemd \
+    systemd-sysv \
+    openssh-server \
+    iptables \
     build-essential \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Enable systemd for RDI installation
+RUN systemctl set-default multi-user.target
 
 
 
@@ -75,7 +82,7 @@ echo "Starting RDI installation..."\n\
 echo "Using Redis Host: ${REDIS_HOST:-3.148.243.197}"\n\
 echo "Using Redis Port: ${REDIS_PORT:-13000}"\n\
 echo "Using Redis User: ${REDIS_USER:-default}"\n\
-echo -e "${REDIS_HOST:-3.148.243.197}\\n${REDIS_PORT:-13000}\\n${REDIS_USER:-default}\\n${REDIS_PASSWORD:-redislabs}\\nN\\n13000\\nY\\nY\\n8.8.8.8,8.8.4.4\\n2\\n" | sudo ./install.sh -l DEBUG\n\
+echo -e "${REDIS_HOST:-3.148.243.197}\\n${REDIS_PORT:-13000}\\n${REDIS_USER:-default}\\n${REDIS_PASSWORD:-redislabs}\\nN\\n\\nY\\nY\\n8.8.8.8,8.8.4.4\\n2\\n" | sudo ./install.sh -l DEBUG\n\
 \n\
 echo "=== RDI Installation Complete ==="\n\
 echo "Checking what processes are running:"\n\
