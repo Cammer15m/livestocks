@@ -6,12 +6,31 @@ echo ""
 
 # Redis Setup Options
 echo "Redis Setup Options:"
-echo "1. Use Redis Cloud (recommended for production-like experience)"
-echo "2. Use local Redis (quick setup, no external dependencies)"
+echo "1. Use shared Redis database (3.148.243.197:13000 - ready to use)"
+echo "2. Use Redis Cloud (your own Redis Cloud instance)"
+echo "3. Use local Redis (quick setup, no external dependencies)"
 echo ""
-read -p "Choose option (1 for Cloud, 2 for Local): " redis_option
+read -p "Choose option (1 for Shared, 2 for Cloud, 3 for Local): " redis_option
 
 if [[ "$redis_option" == "1" ]]; then
+    echo ""
+    echo "✅ Using shared Redis database"
+    echo "   Host: 3.148.243.197:13000"
+    echo "   User: default"
+    echo ""
+
+    # Create .env file for shared Redis
+    cat > .env << EOF
+# Shared Redis Configuration
+REDIS_HOST=3.148.243.197
+REDIS_PORT=13000
+REDIS_PASSWORD=redislabs
+REDIS_USER=default
+EOF
+
+    echo "[SUCCESS] Shared Redis configuration saved"
+    USE_CLOUD=true
+elif [[ "$redis_option" == "2" ]]; then
     echo ""
     echo "Redis Cloud Setup:"
     echo "Please provide your Redis Cloud connection string."
@@ -51,12 +70,12 @@ EOF
         echo "[ERROR] Redis Cloud connection string is required"
         exit 1
     fi
-elif [[ "$redis_option" == "2" ]]; then
+elif [[ "$redis_option" == "3" ]]; then
     echo ""
     echo "✅ Using local Redis setup"
     USE_CLOUD=false
 else
-    echo "❌ Invalid option. Please choose 1 or 2."
+    echo "❌ Invalid option. Please choose 1, 2, or 3."
     exit 1
 fi
 

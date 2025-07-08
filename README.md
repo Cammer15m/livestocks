@@ -41,11 +41,25 @@ A complete Redis Data Integration (RDI) training environment using Docker contai
 | **PostgreSQL** | postgres | postgres | Source database |
 | **SQLPad** | admin@rl.org | redislabs | Database query interface |
 
-## Redis Cloud Integration
+## Redis Database Options
 
-This environment supports both local Redis Enterprise and Redis Cloud:
+This environment supports three Redis database options:
 
-### Option 1: Redis Cloud (Recommended for Production)
+### Option 1: Shared Redis Database (Recommended - No Setup Required)
+
+A pre-configured Redis database is available for immediate use:
+- **Host:** 3.148.243.197:13000
+- **Username:** default
+- **Password:** redislabs
+- **Connection String:** `redis://default:redislabs@3.148.243.197:13000`
+
+```bash
+./start.sh
+# When prompted, choose '1' for Shared Redis
+# No additional configuration needed!
+```
+
+### Option 2: Your Own Redis Cloud Instance
 
 1. **Create Redis Cloud Account:**
    - Sign up at https://redis.io/try-free/
@@ -60,19 +74,32 @@ This environment supports both local Redis Enterprise and Redis Cloud:
 3. **Start with Redis Cloud:**
    ```bash
    ./start.sh
-   # When prompted, choose 'y' for Redis Cloud
+   # When prompted, choose '2' for Redis Cloud
    # Paste your connection string when asked
    ```
 
-### Option 2: Local Redis Enterprise
+### Option 3: Local Redis Enterprise
 ```bash
 ./start.sh
-# When prompted, choose 'n' for local Redis Enterprise
+# When prompted, choose '3' for local Redis Enterprise
 ```
 
-## Using Redis Insight with Redis Cloud
+## Using Redis Insight
 
 1. **Access Redis Insight:** http://localhost:5540
+
+### For Shared Redis Database:
+2. **Add Shared Redis Connection:**
+   - Click "Add Redis Database"
+   - Choose "Connect to a Redis Database"
+   - Enter the shared Redis details:
+     - **Host:** 3.148.243.197
+     - **Port:** 13000
+     - **Username:** default
+     - **Password:** redislabs
+3. **Connect and Explore:** Browse the shared Redis data through the web interface
+
+### For Your Own Redis Cloud:
 2. **Add Redis Cloud Connection:**
    - Click "Add Redis Database"
    - Choose "Connect to a Redis Database"
@@ -85,14 +112,24 @@ This environment supports both local Redis Enterprise and Redis Cloud:
 
 ## RDI Configuration
 
-### Configure RDI with Redis Cloud
+### RDI with Shared Redis Database (Default)
+
+RDI is automatically configured to use the shared Redis database when you choose option 1 during startup. No additional configuration is needed!
+
+The RDI installation automatically connects to:
+- **RDI Host:** 3.148.243.197:13000
+- **Target Redis:** 3.148.243.197:13000 (same database)
+- **Username:** default
+- **Password:** redislabs
+
+### Configure RDI with Your Own Redis Cloud (Option 2)
 
 1. **Access the RDI container:**
    ```bash
-   docker exec -it loadgen bash
+   docker exec -it rdi-cli bash
    ```
 
-2. **Configure RDI to use Redis Cloud:**
+2. **Configure RDI to use your Redis Cloud:**
    ```bash
    # Set up RDI configuration
    redis-di configure --rdi-host localhost:13000 --rdi-password redislabs

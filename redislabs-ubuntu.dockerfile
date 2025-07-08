@@ -1,12 +1,11 @@
-FROM redislabs/redis:latest
+FROM redislabs/redis:7.22.0-216.rhel9
 
 USER root:root
 
-# Install required packages
-RUN apt-get update && \
-    apt-get install -y curl jq && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Install required packages (RHEL-based image)
+RUN yum update -y --skip-broken && \
+    yum install -y curl jq && \
+    yum clean all
 
 # Copy Redis Enterprise bootstrap script
 COPY ./redis/bootstrap-redis-enterprise.sh /tmp/bootstrap-redis-enterprise.sh

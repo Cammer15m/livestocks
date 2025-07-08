@@ -1,11 +1,11 @@
 connections:
-  # Redis Cloud target connection
+  # Shared Redis database target connection
   target:
     type: redis
-    host: ${REDIS_HOST}
-    port: ${REDIS_PORT}
-    password: ${REDIS_PASSWORD}
-    user: ${REDIS_USER}
+    host: ${REDIS_HOST:-3.148.243.197}
+    port: ${REDIS_PORT:-13000}
+    password: ${REDIS_PASSWORD:-redislabs}
+    user: ${REDIS_USER:-default}
 
   # PostgreSQL source connection  
   source:
