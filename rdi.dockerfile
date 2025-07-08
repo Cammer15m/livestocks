@@ -8,9 +8,7 @@ RUN microdnf install openssh-server python3-pip postgresql-devel gcc gcc-c++ pyt
 RUN adduser labuser && \
     usermod -aG wheel labuser
 
-# Install RDI server
-RUN curl -fsSL https://packages.redis.io/redis-stack/redis-stack-server-latest.tar.gz | tar -xz -C /opt/ && \
-    ln -s /opt/redis-stack-server-*/bin/* /usr/local/bin/
+# The RDI CLI already includes the server functionality
 
 USER labuser:labuser
 
