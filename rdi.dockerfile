@@ -49,11 +49,31 @@ WORKDIR /home/labuser
 
 # Create RDI installation script that uses Redis Cloud credentials from environment
 RUN echo '#!/bin/bash\n\
+set -x  # Enable debug output\n\
+exec > >(tee -a /var/log/rdi-startup.log) 2>&1  # Log everything\n\
+\n\
+echo "=== RDI Installation Starting ==="\n\
+echo "Current user: $(whoami)"\n\
+echo "Current directory: $(pwd)"\n\
+echo "Environment variables:"\n\
+env | grep REDIS\n\
+\n\
 # Navigate to RDI installation directory\n\
+echo "Navigating to RDI installation directory..."\n\
 cd /rdi/rdi_install/1.10.0/\n\
+echo "Current directory: $(pwd)"\n\
+ls -la\n\
 \n\
 # Run RDI installation with Redis Cloud credentials from environment\n\
+echo "Starting RDI installation..."\n\
 echo -e "${REDIS_HOST}\\n${REDIS_PORT}\\n${REDIS_USER}\\n${REDIS_PASSWORD}\\nY\\n13000\\nY\\nY\\n8.8.8.8,8.8.4.4\\n2\\n" | sudo ./install.sh -l DEBUG\n\
+\n\
+echo "=== RDI Installation Complete ==="\n\
+echo "Checking what processes are running:"\n\
+ps aux\n\
+\n\
+echo "Checking what ports are listening:"\n\
+netstat -tlnp || ss -tlnp\n\
 \n\
 # Keep container running\n\
 tail -f /dev/null\n\
