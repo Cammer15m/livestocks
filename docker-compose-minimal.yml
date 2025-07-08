@@ -1,0 +1,62 @@
+services:
+  # PostgreSQL source database
+  postgresql:
+    image: 'postgres:15.3-bullseye'
+    container_name: rdi-postgres-test
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_DB=chinook
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - './create_track_table.sql:/docker-entrypoint-initdb.d/create_track_table.sql'
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Insight for monitoring
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: rdi-insight-test
+    ports:
+      - '5540:5540'
+    volumes:
+      - redis-insight-data:/data
+
+  # Web interface
+  web:
+    image: nginx:alpine
+    container_name: rdi-web-test
+    ports:
+      - '8080:80'
+    volumes:
+      - './web:/usr/share/nginx/html'
+    restart: unless-stopped
+
+  # SQLPad for PostgreSQL queries
+  sqlpad:
+    image: 'sqlpad/sqlpad:6'
+    container_name: rdi-sqlpad-test
+    ports:
+      - '3001:3000'
+    environment:
+      SQLPAD_ADMIN: 'admin@rl.org'
+      SQLPAD_ADMIN_PASSWORD: 'redislabs'
+      SQLPAD_APP_LOG_LEVEL: info
+      SQLPAD_WEB_LOG_LEVEL: warn
+      SQLPAD_CONNECTIONS__pgdemo__name: Ingest-Postgres-DB
+      SQLPAD_CONNECTIONS__pgdemo__driver: postgres
+      SQLPAD_CONNECTIONS__pgdemo__host: postgresql
+      SQLPAD_CONNECTIONS__pgdemo__database: chinook
+      SQLPAD_CONNECTIONS__pgdemo__username: postgres
+      SQLPAD_CONNECTIONS__pgdemo__password: postgres
+    depends_on:
+      postgresql:
+        condition: service_healthy
+
+volumes:
+  redis-insight-data:

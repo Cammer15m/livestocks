@@ -22,20 +22,32 @@ echo ""
 # Start appropriate environment based on choice
 if [[ "$USE_CLOUD" == "true" ]]; then
     echo "Starting cloud-based environment..."
-    docker-compose -f docker-compose-cloud.yml up -d --build
+
+    # Clean up any existing containers first
+    docker-compose -f docker-compose-cloud.yml down --remove-orphans 2>/dev/null || true
+
+    if ! docker-compose -f docker-compose-cloud.yml up -d --build; then
+        echo "❌ Failed to start containers. Checking logs..."
+        docker-compose -f docker-compose-cloud.yml logs
+        exit 1
+    fi
 
     echo ""
     echo "⏳ Waiting for services to start..."
     sleep 15
 
     echo ""
+    echo "🔍 Checking container status..."
+    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+    echo ""
     echo "🎉 Environment ready!"
     echo ""
     echo "📊 Dashboard: http://localhost:8080"
-    echo "🔍 Redis Insight: http://localhost:5540 (connect to your Redis Cloud)"
+    echo "🔍 Redis Insight: http://localhost:5540 (connect to shared Redis: 3.148.243.197:13000)"
     echo ""
     echo "🧪 Test data flow:"
-    echo "   docker exec -w /scripts rdi-loadgen python3 generate_load.py"
+    echo "   docker exec -w /scripts rdi-cli python3 generate_load.py"
 else
     echo "Starting local Redis environment..."
     docker-compose up -d --build
