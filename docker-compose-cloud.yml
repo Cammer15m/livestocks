@@ -53,6 +53,21 @@ services:
         condition: service_healthy
     command: sh -c "cd /downloads/rdi_install/1.10.0 && echo '${REDIS_HOST}\n${REDIS_PORT}\n${REDIS_USER}\n${REDIS_PASSWORD}\nn\n443\ny\ny\n8.8.8.8,8.8.4.4\n1\n' | sudo ./install.sh -l DEBUG && tail -f /dev/null"
 
+  # Redis Enterprise for RDI metadata database
+  re-n1:
+    image: redislabs/redis-enterprise:latest
+    container_name: re-n1
+    hostname: re-n1
+    cap_add:
+      - sys_resource
+      - net_admin
+    privileged: true
+    ports:
+      - '14092:14092'
+      - '12000:12000'
+      - '12001:12001'
+      - '8443:8443'
+
   # Load generator for testing
   loadgen:
     build:
@@ -76,6 +91,8 @@ services:
     depends_on:
       postgresql:
         condition: service_healthy
+      re-n1:
+        condition: service_started
 
   # SQLPad for PostgreSQL queries
   sqlpad:

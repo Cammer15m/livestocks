@@ -16,8 +16,7 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Redis Enterprise
-RUN curl -fsSL https://download.redislabs.com/redis-enterprise/install.sh | bash
+
 
 
 
@@ -55,27 +54,15 @@ RUN echo '#!/bin/bash\n\
 set -x  # Enable debug output\n\
 exec > >(tee -a /var/log/rdi-startup.log) 2>&1  # Log everything\n\
 \n\
-echo "=== Redis Enterprise and RDI Installation Starting ==="\n\
+echo "=== RDI Installation Starting ==="\n\
 echo "Current user: $(whoami)"\n\
 echo "Current directory: $(pwd)"\n\
 echo "Environment variables:"\n\
 env | grep REDIS\n\
 \n\
-# Start Redis Enterprise\n\
-echo "Starting Redis Enterprise..."\n\
-/opt/redislabs/bin/rladmin cluster create name cluster.local username admin@rl.org password redislabs\n\
-\n\
-# Wait for Redis Enterprise to be ready\n\
-echo "Waiting for Redis Enterprise to be ready..."\n\
+# Wait for Redis Enterprise container to be ready\n\
+echo "Waiting for Redis Enterprise container to be ready..."\n\
 sleep 30\n\
-\n\
-# Create RDI database via API\n\
-echo "Creating RDI database..."\n\
-curl -k -X POST https://localhost:9443/v1/bdbs -H "Content-Type: application/json" -u admin@rl.org:redislabs -d '"'"'{"name": "rdi-db", "type": "redis", "memory_size": 268435456, "port": 12001, "oss_cluster": false, "replication": true, "sharding": false, "data_persistence": "aof_every_write", "authentication_redis_pass": "redislabs", "roles": ["active"], "rdi": {"enabled": true, "source": true}}'"'"'\n\
-\n\
-# Wait for database to be ready\n\
-echo "Waiting for RDI database to be ready..."\n\
-sleep 10\n\
 \n\
 # Navigate to RDI installation directory\n\
 echo "Navigating to RDI installation directory..."\n\
@@ -85,7 +72,7 @@ ls -la\n\
 \n\
 # Run RDI installation with Redis Cloud credentials from environment\n\
 echo "Starting RDI installation..."\n\
-echo -e "localhost\\n12001\\ndefault\\nredislabs\\nN\\n13000\\nY\\nY\\n8.8.8.8,8.8.4.4\\n2\\n" | sudo ./install.sh -l DEBUG\n\
+echo -e "re-n1\\n12001\\ndefault\\nredislabs\\nN\\n13000\\nY\\nY\\n8.8.8.8,8.8.4.4\\n2\\n" | sudo ./install.sh -l DEBUG\n\
 \n\
 echo "=== RDI Installation Complete ==="\n\
 echo "Checking what processes are running:"\n\
