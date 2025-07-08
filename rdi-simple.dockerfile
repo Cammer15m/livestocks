@@ -3,8 +3,8 @@ FROM redislabs/redis-di-cli:v0.118.0
 
 USER root:root
 
-# Install required packages
-RUN microdnf install -y openssh-server python3-pip
+# Install required packages including PostgreSQL development libraries
+RUN microdnf install -y openssh-server python3-pip postgresql-devel gcc python3-devel
 
 # Create labuser
 RUN adduser labuser && \
@@ -20,8 +20,8 @@ COPY from-repo/scripts /scripts
 
 USER root:root
 
-# Install basic Python requirements (skip heavy dependencies for now)
-RUN python3 -m pip install psycopg2-binary redis
+# Skip Python dependencies for now - focus on RDI functionality first
+# RUN python3 -m pip install psycopg2-binary redis
 
 # Create RDI configuration script
 RUN echo '#!/bin/bash\n\
