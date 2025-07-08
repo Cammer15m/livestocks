@@ -15,35 +15,64 @@ RUN adduser labuser && \
 COPY from-repo/scripts /scripts
 RUN python3 -m pip install -r /scripts/generate-load-requirements.txt
 
-# Install and configure a simple RDI server using socat for HTTPS
-RUN microdnf install -y socat openssl
-
-# Generate self-signed certificate for HTTPS
-RUN openssl req -x509 -newkey rsa:4096 -keyout /tmp/server.key -out /tmp/server.crt -days 365 -nodes -subj "/CN=localhost"
-
-# Create RDI server script that handles HTTPS and basic auth
+# Create a Python-based RDI server that mimics the real RDI API
 RUN echo '#!/bin/bash\n\
-# Create a simple RDI API server\n\
-echo "Starting RDI Server on port 13000 with HTTPS..."\n\
+python3 -c "\n\
+import http.server\n\
+import ssl\n\
+import json\n\
+import base64\n\
+from urllib.parse import urlparse, parse_qs\n\
 \n\
-# Create response handler\n\
-cat > /tmp/rdi_response.sh << EOF\n\
-#!/bin/bash\n\
-read request\n\
-echo "HTTP/1.1 200 OK"\n\
-echo "Content-Type: application/json"\n\
-echo "Access-Control-Allow-Origin: *"\n\
-echo "Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS"\n\
-echo "Access-Control-Allow-Headers: Content-Type, Authorization"\n\
-echo ""\n\
-echo "{\"status\": \"running\", \"version\": \"1.10.0\", \"message\": \"RDI Server Ready\"}"\n\
-EOF\n\
-chmod +x /tmp/rdi_response.sh\n\
+class RDIHandler(http.server.BaseHTTPRequestHandler):\n\
+    def do_OPTIONS(self):\n\
+        self.send_response(200)\n\
+        self.send_header(\"Access-Control-Allow-Origin\", \"*\")\n\
+        self.send_header(\"Access-Control-Allow-Methods\", \"GET, POST, PUT, DELETE, OPTIONS\")\n\
+        self.send_header(\"Access-Control-Allow-Headers\", \"Content-Type, Authorization\")\n\
+        self.end_headers()\n\
+    \n\
+    def do_GET(self):\n\
+        # Basic auth check\n\
+        auth_header = self.headers.get(\"Authorization\")\n\
+        if not auth_header or not auth_header.startswith(\"Basic \"):\n\
+            self.send_response(401)\n\
+            self.send_header(\"WWW-Authenticate\", \"Basic realm=RDI\")\n\
+            self.end_headers()\n\
+            return\n\
+        \n\
+        self.send_response(200)\n\
+        self.send_header(\"Content-type\", \"application/json\")\n\
+        self.send_header(\"Access-Control-Allow-Origin\", \"*\")\n\
+        self.end_headers()\n\
+        \n\
+        if self.path == \"/api/v1/status\":\n\
+            response = {\"status\": \"running\", \"version\": \"1.10.0\"}\n\
+        else:\n\
+            response = {\"message\": \"RDI Server Ready\"}\n\
+        \n\
+        self.wfile.write(json.dumps(response).encode())\n\
+    \n\
+    def do_POST(self):\n\
+        self.send_response(200)\n\
+        self.send_header(\"Content-type\", \"application/json\")\n\
+        self.send_header(\"Access-Control-Allow-Origin\", \"*\")\n\
+        self.end_headers()\n\
+        self.wfile.write(json.dumps({\"success\": True}).encode())\n\
 \n\
-# Start HTTPS server using socat\n\
-socat OPENSSL-LISTEN:13000,cert=/tmp/server.crt,key=/tmp/server.key,verify=0,fork EXEC:/tmp/rdi_response.sh &\n\
+# Create SSL context with self-signed cert\n\
+import tempfile\n\
+import os\n\
+os.system(\"openssl req -x509 -newkey rsa:2048 -keyout /tmp/key.pem -out /tmp/cert.pem -days 365 -nodes -subj '/CN=localhost'\")\n\
 \n\
-echo "RDI Server started on https://localhost:13000"\n\
+httpd = http.server.HTTPServer((\"\", 13000), RDIHandler)\n\
+context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)\n\
+context.load_cert_chain(\"/tmp/cert.pem\", \"/tmp/key.pem\")\n\
+httpd.socket = context.wrap_socket(httpd.socket, server_side=True)\n\
+\n\
+print(\"RDI Server running on https://localhost:13000\")\n\
+httpd.serve_forever()\n\
+" &\n\
 tail -f /dev/null\n\
 ' > /start-rdi-server.sh && chmod +x /start-rdi-server.sh
 
