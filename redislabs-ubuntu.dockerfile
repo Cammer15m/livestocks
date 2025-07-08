@@ -1,4 +1,4 @@
-FROM redislabs/redis-enterprise:latest
+FROM redislabs/redis:latest
 
 USER root:root
 
