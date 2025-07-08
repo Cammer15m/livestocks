@@ -33,10 +33,11 @@ services:
   rdi-cli:
     build:
       context: .
-      dockerfile: rdi-simple.dockerfile
+      dockerfile: rdi.dockerfile
     container_name: rdi-cli
     ports:
       - '13000:13000'
+      - '443:443'
     environment:
       - POSTGRES_HOST=postgresql
       - POSTGRES_PORT=5432
