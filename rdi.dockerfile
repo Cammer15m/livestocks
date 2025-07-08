@@ -3,7 +3,7 @@ FROM ubuntu:22.04
 
 USER root
 
-# Install required packages
+# Install required packages including build dependencies for pandas
 RUN apt-get update && apt-get install -y \
     curl \
     wget \
@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     postgresql-client \
     sudo \
+    build-essential \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Create labuser
@@ -34,7 +36,10 @@ COPY from-repo/scripts /scripts
 
 USER root:root
 
-RUN python3 -m pip install -r /scripts/generate-load-requirements.txt
+# Upgrade pip and install requirements with pre-built wheels when possible
+RUN python3 -m pip install --upgrade pip
+RUN python3 -m pip install --only-binary=all -r /scripts/generate-load-requirements.txt || \
+    python3 -m pip install -r /scripts/generate-load-requirements.txt
 
 # Expose RDI server port
 EXPOSE 13000
