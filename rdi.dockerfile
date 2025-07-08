@@ -46,13 +46,14 @@ EXPOSE 13000
 
 WORKDIR /home/labuser
 
-# Configure Redis with password - use the default config and add password
-RUN echo 'requirepass redislabs' >> /etc/redis/redis.conf
+# Configure Redis with password in config file
+RUN mkdir -p /etc/redis && \
+    echo 'requirepass redislabs' > /etc/redis/redis.conf
 
 # Create RDI installation script with automated responses
 RUN echo '#!/bin/bash\n\
-# Start Redis server with password\n\
-redis-server --requirepass redislabs --daemonize yes\n\
+# Start Redis server with config file\n\
+redis-server /etc/redis/redis.conf --daemonize yes\n\
 \n\
 # Wait for Redis to start\n\
 sleep 5\n\
@@ -61,7 +62,7 @@ sleep 5\n\
 cd /rdi/rdi_install/1.10.0/\n\
 \n\
 # Run RDI installation with automated responses\n\
-echo -e "localhost\\n6379\\n\\nredislabs\\nN\\n\\nY\\nY\\n8.8.8.8,8.8.4.4\\n2\\n" | sudo ./install.sh -l DEBUG\n\
+echo -e "localhost\\n6379\\ndefault\\nredislabs\\nN\\n\\nY\\nY\\n8.8.8.8,8.8.4.4\\n2\\n" | sudo ./install.sh -l DEBUG\n\
 \n\
 # Keep container running\n\
 tail -f /dev/null\n\
