@@ -55,7 +55,9 @@ services:
 
   # Redis Enterprise for RDI metadata database
   re-n1:
-    image: redislabs/redis-enterprise:latest
+    build:
+      context: .
+      dockerfile: redislabs-ubuntu.dockerfile
     container_name: re-n1
     hostname: re-n1
     cap_add:

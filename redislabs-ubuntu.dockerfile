@@ -1,15 +1,30 @@
-FROM redislabs/redis:7.8.2-60.focal
+FROM redislabs/redis-enterprise:latest
 
 USER root:root
 
-COPY ./redis/init_script.sh /tmp/init_script.sh
-
+# Install required packages
 RUN apt-get update && \
-    apt-get install -y git && \
-    apt-get install -y openssh-server && \
-    apt-get install -y jq
+    apt-get install -y curl jq && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN adduser --disabled-password --gecos "Lab User,,," labuser && \
-    usermod -aG redislabs,sudo labuser
+# Copy Redis Enterprise bootstrap script
+COPY ./redis/bootstrap-redis-enterprise.sh /tmp/bootstrap-redis-enterprise.sh
+RUN chmod +x /tmp/bootstrap-redis-enterprise.sh
 
-RUN echo '\n\nlabuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+# Create startup script that runs Redis Enterprise and then bootstraps
+RUN echo '#!/bin/bash\n\
+# Start Redis Enterprise in background\n\
+/opt/redislabs/bin/supervisord &\n\
+\n\
+# Wait for Redis Enterprise to be ready\n\
+sleep 30\n\
+\n\
+# Run bootstrap script\n\
+/tmp/bootstrap-redis-enterprise.sh\n\
+\n\
+# Keep container running\n\
+wait\n\
+' > /start-redis-enterprise.sh && chmod +x /start-redis-enterprise.sh
+
+CMD ["/start-redis-enterprise.sh"]
