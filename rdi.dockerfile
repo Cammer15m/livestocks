@@ -21,14 +21,14 @@ RUN useradd -m -s /bin/bash labuser && \
     usermod -aG sudo labuser && \
     echo "labuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Download and extract RDI installation package (following rdi-training pattern)
-ENV RDI_VERSION=1.10.0
+# RDI - following exact rdi-training pattern
 RUN mkdir /rdi
 WORKDIR /rdi
+ENV RDI_VERSION=1.10.0
 RUN curl https://redis-enterprise-software-downloads.s3.amazonaws.com/redis-di/rdi-installation-$RDI_VERSION.tar.gz -O
-RUN tar -xzf rdi-installation-$RDI_VERSION.tar.gz
+RUN tar -xvf rdi-installation-$RDI_VERSION.tar.gz
 RUN rm rdi-installation-$RDI_VERSION.tar.gz
-WORKDIR /rdi/rdi-installation-$RDI_VERSION
+WORKDIR /rdi/rdi_install/$RDI_VERSION
 
 USER labuser:labuser
 
@@ -44,6 +44,3 @@ RUN python3 -m pip install --verbose -r /scripts/generate-load-requirements.txt
 EXPOSE 13000
 
 WORKDIR /home/labuser
-
-# Start RDI server on port 13000 from the extracted location
-CMD ["/rdi/rdi-installation-1.10.0/bin/redis-di-server", "--port", "13000"]
