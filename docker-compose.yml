@@ -46,8 +46,6 @@ services:
   redis-insight-2:
     image: redis/redisinsight:latest
     container_name: redis-insight-2
-    depends_on:
-      - re-n1
     ports:
       - '5540:5540'
     volumes:
@@ -62,7 +60,7 @@ services:
     ports:
       - '8081:8081'    
     environment:
-      - REDIS_TARGET_DB_HOST=re-n1
+      - REDIS_TARGET_DB_HOST=3.148.243.197
     volumes:
       - './from-repo/app:/app'
 
@@ -74,19 +72,7 @@ services:
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'
 
-  re-n1:
-    image: redislabs/redis-enterprise:latest
-    container_name: re-n1
-    hostname: re-n1
-    cap_add:
-      - sys_resource
-      - net_admin
-    privileged: true
-    ports:
-      - '14092:14092'
-      - '12000:12000'
-      - '12001:12001'
-      - '8443:8443'
+
 
   postgresql:
     image: 'postgres:15.3-bullseye'
@@ -135,6 +121,7 @@ services:
     ports:
       - '9121:9121'
       - '13000:13000'
+      - '443:13000'
     build:
       context: .
       dockerfile: rdi.dockerfile
