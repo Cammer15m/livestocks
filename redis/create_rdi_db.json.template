@@ -1,16 +1,18 @@
 {
   "name": "rdi-db",
   "type": "redis",
+  "memory_size": 268435456,
+  "port": 12001,
+  "oss_cluster": false,
+  "replication": true,
+  "sharding": false,
+  "data_persistence": "aof_every_write",
   "authentication_redis_pass": "redislabs",
-  "shard_key_regex": [
-    {
-      "regex": ".*\\{(?<tag>.*)\\}.*"
-    },
-    {
-      "regex": "(?<tag>.*)"
-    }
+  "roles": [
+    "active"
   ],
-  "replication": false,
-  "memory_size": 1000000000,
-  "port": 12001
+  "rdi": {
+    "enabled": true,
+    "source": true
+  }
 }

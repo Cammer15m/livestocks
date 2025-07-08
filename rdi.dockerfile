@@ -66,7 +66,7 @@ ls -la\n\
 \n\
 # Run RDI installation with Redis Cloud credentials from environment\n\
 echo "Starting RDI installation..."\n\
-echo -e "${REDIS_HOST}\\n${REDIS_PORT}\\n${REDIS_USER}\\n${REDIS_PASSWORD}\\nY\\n13000\\nY\\nY\\n8.8.8.8,8.8.4.4\\n2\\n" | sudo ./install.sh -l DEBUG\n\
+echo -e "re-n1\\n12001\\ndefault\\nredislabs\\nN\\n13000\\nY\\nY\\n8.8.8.8,8.8.4.4\\n2\\n" | sudo ./install.sh -l DEBUG\n\
 \n\
 echo "=== RDI Installation Complete ==="\n\
 echo "Checking what processes are running:"\n\
