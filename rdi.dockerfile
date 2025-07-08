@@ -53,7 +53,7 @@ RUN echo '#!/bin/bash\n\
 cd /rdi/rdi_install/1.10.0/\n\
 \n\
 # Run RDI installation with Redis Cloud credentials from environment\n\
-echo -e "${REDIS_HOST}\\n${REDIS_PORT}\\n${REDIS_USER}\\n${REDIS_PASSWORD}\\nY\\n443\\nY\\nY\\n8.8.8.8,8.8.4.4\\n2\\n" | sudo ./install.sh -l DEBUG\n\
+echo -e "${REDIS_HOST}\\n${REDIS_PORT}\\n${REDIS_USER}\\n${REDIS_PASSWORD}\\nY\\n13000\\nY\\nY\\n8.8.8.8,8.8.4.4\\n2\\n" | sudo ./install.sh -l DEBUG\n\
 \n\
 # Keep container running\n\
 tail -f /dev/null\n\
