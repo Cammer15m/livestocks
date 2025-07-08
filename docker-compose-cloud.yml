@@ -27,32 +27,6 @@ services:
     volumes:
       - redis-insight-data:/data
 
-  # RDI CLI container with server
-  rdi-cli:
-    build:
-      context: .
-      dockerfile: rdi.dockerfile
-    container_name: rdi-cli
-    ports:
-      - '13000:13000'
-    environment:
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - REDIS_USER=${REDIS_USER:-default}
-      - POSTGRES_HOST=postgresql
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=chinook
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-    volumes:
-      - './rdi-config:/config'
-      - './from-repo/scripts:/scripts'
-    depends_on:
-      postgresql:
-        condition: service_healthy
-    command: sh -c "cd /downloads/rdi_install/1.10.0 && echo '${REDIS_HOST}\n${REDIS_PORT}\n${REDIS_USER}\n${REDIS_PASSWORD}\nn\n443\ny\ny\n8.8.8.8,8.8.4.4\n1\n' | sudo ./install.sh -l DEBUG && tail -f /dev/null"
-
 # Redis Enterprise removed - using shared Redis database
 
   # RDI container (optimized build)
