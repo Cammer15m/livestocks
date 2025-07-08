@@ -1,14 +1,30 @@
-FROM redislabs/redis-di-cli:v0.118.0
+FROM ubuntu:22.04
 
-USER root:root
+USER root
 
-# Install required packages including PostgreSQL development libraries
-RUN microdnf install openssh-server python3-pip postgresql-devel gcc gcc-c++ python3-devel gettext curl
+# Install required packages
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    tar \
+    python3 \
+    python3-pip \
+    postgresql-client \
+    sudo \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN adduser labuser && \
-    usermod -aG wheel labuser
+# Create labuser
+RUN useradd -m -s /bin/bash labuser && \
+    usermod -aG sudo labuser && \
+    echo "labuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# The RDI CLI already includes the server functionality
+# Download and install RDI
+ENV RDI_VERSION=1.10.0
+RUN mkdir -p /downloads && \
+    cd /downloads && \
+    curl --output rdi-installation-$RDI_VERSION.tar.gz https://redis-enterprise-software-downloads.s3.amazonaws.com/redis-di/rdi-installation-$RDI_VERSION.tar.gz && \
+    tar -xzf rdi-installation-$RDI_VERSION.tar.gz && \
+    chmod -R 744 /downloads
 
 USER labuser:labuser
 

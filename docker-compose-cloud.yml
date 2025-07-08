@@ -51,7 +51,7 @@ services:
     depends_on:
       postgresql:
         condition: service_healthy
-    command: tail -f /dev/null
+    command: sh -c "cd /downloads/rdi_install/1.10.0 && echo 'localhost\n13000\ndefault\nredislabs\nn\n443\ny\ny\n8.8.8.8,8.8.4.4\n1\n' | sudo ./install.sh -l DEBUG && tail -f /dev/null"
 
   # Load generator for testing
   loadgen:
