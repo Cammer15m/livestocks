@@ -29,14 +29,12 @@ services:
 
 # Redis Enterprise removed - using shared Redis database
 
-  # RDI container (optimized build)
-  loadgen:
+  # RDI CLI container (using official image like rdi-training)
+  rdi-cli:
     build:
       context: .
-      dockerfile: rdi-optimized.dockerfile
+      dockerfile: rdi-simple.dockerfile
     container_name: rdi-cli
-    ports:
-      - '13000:13000'
     environment:
       - POSTGRES_HOST=postgresql
       - POSTGRES_PORT=5432

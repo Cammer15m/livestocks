@@ -46,8 +46,9 @@ if [[ "$USE_CLOUD" == "true" ]]; then
     echo "📊 Dashboard: http://localhost:8080"
     echo "🔍 Redis Insight: http://localhost:5540 (connect to shared Redis: 3.148.243.197:13000)"
     echo ""
-    echo "🧪 Test data flow:"
-    echo "   docker exec -w /scripts rdi-cli python3 generate_load.py"
+    echo "🧪 Test RDI:"
+    echo "   docker exec -it rdi-cli redis-di --help"
+    echo "   docker exec -it rdi-cli redis-di status"
 else
     echo "Starting local Redis environment..."
     docker-compose up -d --build
