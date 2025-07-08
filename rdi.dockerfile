@@ -3,7 +3,7 @@ FROM ubuntu:22.04
 
 USER root
 
-# Install required packages including build dependencies for pandas
+# Install required packages including build dependencies for pandas and Redis server
 RUN apt-get update && apt-get install -y \
     curl \
     wget \
@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     sudo \
     build-essential \
     python3-dev \
+    redis-server \
     && rm -rf /var/lib/apt/lists/*
 
 # Create labuser
@@ -44,3 +45,26 @@ RUN python3 -m pip install --verbose -r /scripts/generate-load-requirements.txt
 EXPOSE 13000
 
 WORKDIR /home/labuser
+
+# Configure Redis with password
+RUN echo 'requirepass redislabs' >> /etc/redis/redis.conf
+
+# Create RDI installation script with automated responses
+RUN echo '#!/bin/bash\n\
+# Start Redis server in background\n\
+redis-server --daemonize yes\n\
+\n\
+# Wait for Redis to start\n\
+sleep 5\n\
+\n\
+# Navigate to RDI installation directory\n\
+cd /rdi/rdi_install/1.10.0/\n\
+\n\
+# Run RDI installation with automated responses\n\
+echo -e "localhost\\n6379\\n\\nredislabs\\nN\\n\\nY\\nY\\n8.8.8.8,8.8.4.4\\n2\\n" | sudo ./install.sh -l DEBUG\n\
+\n\
+# Keep container running\n\
+tail -f /dev/null\n\
+' > /start.sh && chmod +x /start.sh
+
+CMD ["/start.sh"]
