@@ -4,80 +4,23 @@ echo "🚀 Redis RDI Training Environment"
 echo "=================================="
 echo ""
 
-# Redis Setup Options
-echo "Redis Setup Options:"
-echo "1. Use shared Redis database (3.148.243.197:13000 - ready to use)"
-echo "2. Use Redis Cloud (your own Redis Cloud instance)"
-echo "3. Use local Redis (quick setup, no external dependencies)"
+# Automatically configure shared Redis database
+echo "🔧 Configuring Redis connection..."
+echo "   Using shared Redis database: 3.148.243.197:13000"
+echo "   User: default"
 echo ""
-read -p "Choose option (1 for Shared, 2 for Cloud, 3 for Local): " redis_option
 
-if [[ "$redis_option" == "1" ]]; then
-    echo ""
-    echo "✅ Using shared Redis database"
-    echo "   Host: 3.148.243.197:13000"
-    echo "   User: default"
-    echo ""
-
-    # Create .env file for shared Redis
-    cat > .env << EOF
-# Shared Redis Configuration
+# Create .env file for shared Redis
+cat > .env << EOF
+# Shared Redis Configuration (automatically configured)
 REDIS_HOST=3.148.243.197
 REDIS_PORT=13000
 REDIS_PASSWORD=redislabs
 REDIS_USER=default
 EOF
 
-    echo "[SUCCESS] Shared Redis configuration saved"
-    USE_CLOUD=true
-elif [[ "$redis_option" == "2" ]]; then
-    echo ""
-    echo "Redis Cloud Setup:"
-    echo "Please provide your Redis Cloud connection string."
-    echo "Format: redis://default:password@host:port"
-    echo "You can find this in your Redis Cloud dashboard under 'Connect'"
-    echo ""
-    read -p "Redis Cloud connection string: " redis_cloud_url
-
-    if [[ -n "$redis_cloud_url" ]]; then
-        # Parse the connection string
-        if [[ "$redis_cloud_url" =~ redis://([^:]+):([^@]+)@([^:]+):([0-9]+) ]]; then
-            export REDIS_USER="${BASH_REMATCH[1]}"
-            export REDIS_PASSWORD="${BASH_REMATCH[2]}"
-            export REDIS_HOST="${BASH_REMATCH[3]}"
-            export REDIS_PORT="${BASH_REMATCH[4]}"
-
-            # Create .env file
-            cat > .env << EOF
-# Redis Cloud Configuration
-REDIS_HOST=$REDIS_HOST
-REDIS_PORT=$REDIS_PORT
-REDIS_PASSWORD=$REDIS_PASSWORD
-REDIS_USER=$REDIS_USER
-EOF
-
-            echo "[SUCCESS] Redis Cloud configuration saved"
-            echo "   Host: $REDIS_HOST:$REDIS_PORT"
-            echo "   User: $REDIS_USER"
-            echo ""
-            USE_CLOUD=true
-        else
-            echo "[ERROR] Invalid Redis Cloud URL format"
-            echo "Expected format: redis://default:password@host:port"
-            exit 1
-        fi
-    else
-        echo "[ERROR] Redis Cloud connection string is required"
-        exit 1
-    fi
-elif [[ "$redis_option" == "3" ]]; then
-    echo ""
-    echo "✅ Using local Redis setup"
-    USE_CLOUD=false
-else
-    echo "❌ Invalid option. Please choose 1, 2, or 3."
-    exit 1
-fi
+echo "✅ Redis configuration complete"
+USE_CLOUD=true
 
 echo "✅ Environment configured"
 echo "🐳 Starting containers..."
