@@ -131,9 +131,10 @@ services:
   loadgen:
     image: loadgen
     hostname: loadgen
-    container_name: loadgen
+    container_name: rdi-loadgen
     ports:
       - '9121:9121'
+      - '13000:13000'
     build:
       context: .
       dockerfile: rdi.dockerfile
