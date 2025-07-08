@@ -19,22 +19,14 @@ RUN useradd -m -s /bin/bash labuser && \
     usermod -aG sudo labuser && \
     echo "labuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Download and extract RDI installation package
+# Download and extract RDI installation package (following rdi-training pattern)
 ENV RDI_VERSION=1.10.0
-RUN curl --output /tmp/rdi-installation-$RDI_VERSION.tar.gz https://redis-enterprise-software-downloads.s3.amazonaws.com/redis-di/rdi-installation-$RDI_VERSION.tar.gz
-
-# Extract and examine the package
-RUN cd /tmp && \
-    tar -xzf rdi-installation-$RDI_VERSION.tar.gz && \
-    ls -la rdi-installation-$RDI_VERSION/ && \
-    chmod +x rdi-installation-$RDI_VERSION/install.sh
-
-# Install RDI
-RUN cd /tmp/rdi-installation-$RDI_VERSION && \
-    ./install.sh
-
-# Cleanup
-RUN rm -rf /tmp/rdi-installation-$RDI_VERSION.tar.gz /tmp/rdi-installation-$RDI_VERSION
+RUN mkdir /rdi
+WORKDIR /rdi
+RUN curl https://redis-enterprise-software-downloads.s3.amazonaws.com/redis-di/rdi-installation-$RDI_VERSION.tar.gz -O
+RUN tar -xzf rdi-installation-$RDI_VERSION.tar.gz
+RUN rm rdi-installation-$RDI_VERSION.tar.gz
+WORKDIR /rdi/rdi-installation-$RDI_VERSION
 
 USER labuser:labuser
 
@@ -49,5 +41,5 @@ EXPOSE 13000
 
 WORKDIR /home/labuser
 
-# Start RDI server on port 13000
-CMD ["/opt/redis-di/bin/redis-di-server", "--port", "13000"]
+# Start RDI server on port 13000 from the extracted location
+CMD ["/rdi/rdi-installation-1.10.0/bin/redis-di-server", "--port", "13000"]
