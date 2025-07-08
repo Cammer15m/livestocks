@@ -18,11 +18,10 @@ RUN useradd -m -s /bin/bash labuser && \
     usermod -aG sudo labuser && \
     echo "labuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Download and install RDI
+# Copy and extract RDI installation package
 ENV RDI_VERSION=1.10.0
-RUN mkdir -p /downloads && \
-    cd /downloads && \
-    curl --output rdi-installation-$RDI_VERSION.tar.gz https://redis-enterprise-software-downloads.s3.amazonaws.com/redis-di/rdi-installation-$RDI_VERSION.tar.gz && \
+COPY rdi-training/rdi-installation-$RDI_VERSION.tar.gz /downloads/
+RUN cd /downloads && \
     tar -xzf rdi-installation-$RDI_VERSION.tar.gz && \
     chmod -R 744 /downloads
 
