@@ -36,10 +36,9 @@ COPY from-repo/scripts /scripts
 
 USER root:root
 
-# Upgrade pip and install requirements with pre-built wheels when possible
+# Upgrade pip and install requirements with verbose output to see errors
 RUN python3 -m pip install --upgrade pip
-RUN python3 -m pip install --only-binary=all -r /scripts/generate-load-requirements.txt || \
-    python3 -m pip install -r /scripts/generate-load-requirements.txt
+RUN python3 -m pip install --verbose -r /scripts/generate-load-requirements.txt
 
 # Expose RDI server port
 EXPOSE 13000
