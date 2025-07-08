@@ -46,16 +46,13 @@ EXPOSE 13000
 
 WORKDIR /home/labuser
 
-# Configure Redis with password
-RUN mkdir -p /etc/redis && \
-    echo 'requirepass redislabs' > /etc/redis/redis.conf && \
-    echo 'bind 127.0.0.1' >> /etc/redis/redis.conf && \
-    echo 'port 6379' >> /etc/redis/redis.conf
+# Configure Redis with password - use the default config and add password
+RUN echo 'requirepass redislabs' >> /etc/redis/redis.conf
 
 # Create RDI installation script with automated responses
 RUN echo '#!/bin/bash\n\
-# Start Redis server with configuration file\n\
-redis-server /etc/redis/redis.conf --daemonize yes\n\
+# Start Redis server with password\n\
+redis-server --requirepass redislabs --daemonize yes\n\
 \n\
 # Wait for Redis to start\n\
 sleep 5\n\
