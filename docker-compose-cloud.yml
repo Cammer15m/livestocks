@@ -70,7 +70,6 @@ services:
     depends_on:
       postgresql:
         condition: service_healthy
-    command: tail -f /dev/null
 
   # SQLPad for PostgreSQL queries
   sqlpad:
