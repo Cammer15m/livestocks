@@ -51,7 +51,7 @@ services:
     depends_on:
       postgresql:
         condition: service_healthy
-    command: sh -c "redis-di start-server --port 13000 --password redislabs & tail -f /dev/null"
+    command: sh -c "redis-di configure --rdi-host localhost:13000 --rdi-password redislabs && redis-di start --port 13000 && tail -f /dev/null"
 
   # Load generator for testing
   loadgen:
