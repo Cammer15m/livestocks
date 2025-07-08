@@ -20,8 +20,8 @@ COPY from-repo/scripts /scripts
 
 USER root:root
 
-# Install Python requirements
-RUN python3 -m pip install -r /scripts/generate-load-requirements.txt
+# Install basic Python requirements (skip heavy dependencies for now)
+RUN python3 -m pip install psycopg2-binary redis
 
 # Create RDI configuration script
 RUN echo '#!/bin/bash\n\
