@@ -1,0 +1,54 @@
+# Git files
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+docs/
+web/
+
+# Docker files
+docker-compose*.yml
+Dockerfile*
+*.dockerfile
+
+# Logs and databases
+*.log
+*.db
+redisinsight.db
+
+# Temporary files
+.env
+*.tmp
+*.cache
+
+# Large directories that aren't needed in build (2.3GB!)
+rdi-training/
+grafana/
+redis/
+prometheus/
+dist/
+node_modules/
+
+# Configuration files not needed in build
+grafana_config/
+rdi-config/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+docker-compose-test.yml
+*test*
+
+# Build artifacts
+*.tar.gz
+*.zip

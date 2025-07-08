@@ -53,29 +53,14 @@ services:
         condition: service_healthy
     command: sh -c "cd /downloads/rdi_install/1.10.0 && echo '${REDIS_HOST}\n${REDIS_PORT}\n${REDIS_USER}\n${REDIS_PASSWORD}\nn\n443\ny\ny\n8.8.8.8,8.8.4.4\n1\n' | sudo ./install.sh -l DEBUG && tail -f /dev/null"
 
-  # Redis Enterprise for RDI metadata database
-  re-n1:
-    build:
-      context: .
-      dockerfile: redislabs-ubuntu.dockerfile
-    container_name: re-n1
-    hostname: re-n1
-    cap_add:
-      - sys_resource
-      - net_admin
-    privileged: true
-    ports:
-      - '14092:14092'
-      - '12000:12000'
-      - '12001:12001'
-      - '8443:8443'
+# Redis Enterprise removed - using shared Redis database
 
-  # Load generator for testing
+  # RDI container (optimized build)
   loadgen:
     build:
       context: .
-      dockerfile: rdi.dockerfile
-    container_name: rdi-loadgen
+      dockerfile: rdi-optimized.dockerfile
+    container_name: rdi-cli
     ports:
       - '13000:13000'
     environment:
@@ -84,17 +69,16 @@ services:
       - POSTGRES_DB=chinook
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - REDIS_USER=${REDIS_USER}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_HOST=3.148.243.197
+      - REDIS_PORT=13000
+      - REDIS_USER=default
+      - REDIS_PASSWORD=redislabs
     volumes:
       - './from-repo/scripts:/scripts'
+      - './rdi-config:/rdi-config'
     depends_on:
       postgresql:
         condition: service_healthy
-      re-n1:
-        condition: service_started
 
   # SQLPad for PostgreSQL queries
   sqlpad:
@@ -126,6 +110,35 @@ services:
     volumes:
       - './web:/usr/share/nginx/html'
     restart: unless-stopped
+
+  # Grafana for monitoring
+  grafana:
+    image: grafana/grafana
+    container_name: rdi-grafana
+    environment:
+      - GF_INSTALL_PLUGINS=redis-app,redis-datasource,grafana-clock-panel,grafana-simple-json-datasource
+      - GF_SECURITY_ADMIN_PASSWORD=redislabs
+    volumes:
+      - './grafana:/var/lib/grafana'
+      - './grafana_config/grafana.ini:/etc/grafana/grafana.ini'
+    ports:
+      - '3000:3000'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Prometheus for metrics
+  prometheus:
+    image: prom/prometheus
+    container_name: rdi-prometheus
+    volumes:
+      - './prometheus/:/etc/prometheus/'
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - '9090:9090'
 
 volumes:
   redis-insight-data:
