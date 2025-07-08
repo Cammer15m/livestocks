@@ -14,8 +14,9 @@ RUN apt-get update && apt-get install -y \
     sudo \
     build-essential \
     python3-dev \
-    redis-server \
     && rm -rf /var/lib/apt/lists/*
+
+
 
 # Create labuser
 RUN useradd -m -s /bin/bash labuser && \
@@ -46,23 +47,13 @@ EXPOSE 13000
 
 WORKDIR /home/labuser
 
-# Configure Redis with password in config file
-RUN mkdir -p /etc/redis && \
-    echo 'requirepass redislabs' > /etc/redis/redis.conf
-
-# Create RDI installation script with automated responses
+# Create RDI installation script that uses Redis Cloud credentials from environment
 RUN echo '#!/bin/bash\n\
-# Start Redis server with config file\n\
-redis-server /etc/redis/redis.conf --daemonize yes\n\
-\n\
-# Wait for Redis to start\n\
-sleep 5\n\
-\n\
 # Navigate to RDI installation directory\n\
 cd /rdi/rdi_install/1.10.0/\n\
 \n\
-# Run RDI installation with automated responses\n\
-echo -e "localhost\\n6379\\ndefault\\nredislabs\\nN\\n\\nY\\nY\\n8.8.8.8,8.8.4.4\\n2\\n" | sudo ./install.sh -l DEBUG\n\
+# Run RDI installation with Redis Cloud credentials from environment\n\
+echo -e "${REDIS_HOST}\\n${REDIS_PORT}\\n${REDIS_USER}\\n${REDIS_PASSWORD}\\nY\\n443\\nY\\nY\\n8.8.8.8,8.8.4.4\\n2\\n" | sudo ./install.sh -l DEBUG\n\
 \n\
 # Keep container running\n\
 tail -f /dev/null\n\

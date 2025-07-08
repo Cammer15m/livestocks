@@ -65,6 +65,10 @@ services:
       - POSTGRES_DB=chinook
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_USER=${REDIS_USER}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
       - './from-repo/scripts:/scripts'
     depends_on:
