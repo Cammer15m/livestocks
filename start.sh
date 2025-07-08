@@ -4,13 +4,7 @@ echo "🚀 Redis RDI Training Environment"
 echo "=================================="
 echo ""
 
-# Automatically configure shared Redis database
-echo "🔧 Configuring Redis connection..."
-echo "   Using shared Redis database: 3.148.243.197:13000"
-echo "   User: default"
-echo ""
-
-# Create .env file for shared Redis
+# Silently configure shared Redis database for RDI metadata
 cat > .env << EOF
 # Shared Redis Configuration (automatically configured)
 REDIS_HOST=3.148.243.197
@@ -19,7 +13,6 @@ REDIS_PASSWORD=redislabs
 REDIS_USER=default
 EOF
 
-echo "✅ Redis configuration complete"
 USE_CLOUD=true
 
 echo "✅ Environment configured"
