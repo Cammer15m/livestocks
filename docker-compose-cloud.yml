@@ -59,6 +59,8 @@ services:
       context: .
       dockerfile: rdi.dockerfile
     container_name: rdi-loadgen
+    ports:
+      - '443:443'
     environment:
       - POSTGRES_HOST=postgresql
       - POSTGRES_PORT=5432
