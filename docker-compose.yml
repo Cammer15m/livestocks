@@ -121,7 +121,7 @@ services:
     ports:
       - '9121:9121'
       - '13000:13000'
-      - '443:13000'
+      - '443:443'
     build:
       context: .
       dockerfile: rdi.dockerfile
