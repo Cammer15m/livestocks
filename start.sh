@@ -55,13 +55,49 @@ EOF
 
 # Check if Docker is installed
 if ! command -v docker &> /dev/null; then
-    # Check if Docker Desktop is installed but not in PATH (common on macOS)
-    if [[ "$OSTYPE" == "darwin"* ]] && [[ -f "/Applications/Docker.app/Contents/Resources/bin/docker" ]]; then
-        echo "Docker Desktop found but not in PATH. Adding to PATH..."
-        export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
-        echo "Docker command now available. Continuing..."
-    else
-        echo "Docker is not installed. Installing Docker..."
+    # On macOS, try to find Docker and add it to PATH permanently
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "Docker command not found. Searching for Docker Desktop..."
+
+        # Common Docker Desktop locations
+        DOCKER_PATHS=(
+            "/Applications/Docker.app/Contents/Resources/bin"
+            "/usr/local/bin"
+            "/opt/homebrew/bin"
+        )
+
+        DOCKER_FOUND=""
+        for path in "${DOCKER_PATHS[@]}"; do
+            if [[ -f "$path/docker" ]]; then
+                DOCKER_FOUND="$path"
+                echo "Found Docker at: $path/docker"
+                break
+            fi
+        done
+
+        if [[ -n "$DOCKER_FOUND" ]]; then
+            echo "Adding Docker to PATH permanently..."
+            export PATH="$DOCKER_FOUND:$PATH"
+
+            # Add to shell profile for permanent access
+            SHELL_PROFILE=""
+            if [[ -n "$ZSH_VERSION" ]] || [[ "$SHELL" == *"zsh"* ]]; then
+                SHELL_PROFILE="$HOME/.zshrc"
+            elif [[ -n "$BASH_VERSION" ]] || [[ "$SHELL" == *"bash"* ]]; then
+                SHELL_PROFILE="$HOME/.bash_profile"
+            fi
+
+            if [[ -n "$SHELL_PROFILE" ]]; then
+                # Check if PATH already contains Docker
+                if ! grep -q "$DOCKER_FOUND" "$SHELL_PROFILE" 2>/dev/null; then
+                    echo "export PATH=\"$DOCKER_FOUND:\$PATH\"" >> "$SHELL_PROFILE"
+                    echo "Added Docker to $SHELL_PROFILE for future terminal sessions"
+                fi
+            fi
+
+            echo "Docker command now available. Continuing..."
+        else
+            echo "Docker Desktop not found. Please install Docker Desktop..."
 
     # Detect operating system
     if [[ "$OSTYPE" == "darwin"* ]]; then
