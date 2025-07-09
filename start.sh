@@ -7,35 +7,6 @@ echo ""
 # Gather Redis Cloud connection details from user
 echo "📋 Redis Cloud Configuration"
 echo "Please provide your Redis Cloud connection details:"
-<<<<<<< HEAD
-echo ""
-
-# Prompt for Redis Cloud details
-read -p "🔗 Redis Host (e.g., redis-12345.c1.region.ec2.redns.redis-cloud.com): " REDIS_HOST
-read -p "🔌 Redis Port (e.g., 12345): " REDIS_PORT
-read -p "🔑 Redis Password: " REDIS_PASSWORD
-read -p "👤 Redis Username (default: 'default'): " REDIS_USER
-
-# Set defaults if empty
-REDIS_USER=${REDIS_USER:-default}
-
-# Validate required fields
-if [[ -z "$REDIS_HOST" || -z "$REDIS_PORT" || -z "$REDIS_PASSWORD" ]]; then
-    echo "❌ Error: Redis host, port, and password are required!"
-    echo ""
-    echo "💡 Example Redis Cloud connection string:"
-    echo "   redis://default:password@redis-12345.c1.region.ec2.redns.redis-cloud.com:12345"
-    echo ""
-    echo "   Host: redis-12345.c1.region.ec2.redns.redis-cloud.com"
-    echo "   Port: 12345"
-    echo "   Password: your-password"
-    echo "   Username: default"
-    exit 1
-fi
-
-# Configure environment with user's Redis Cloud instance
-# This Redis instance will be used for BOTH RDI metadata AND target data
-=======
 echo "This Redis instance will be used for BOTH RDI metadata AND target data."
 echo ""
 echo "💡 Note: Please ensure your Redis Cloud instance is configured with:"
@@ -74,7 +45,6 @@ echo "   Password: $REDIS_PASSWORD (standard)"
 echo ""
 
 # Configure environment with user's Redis Cloud instance
->>>>>>> 69cb40c (Implement Redis Cloud user input with standardized credentials)
 cat > .env << EOF
 # Redis Cloud Configuration (user provided)
 REDIS_HOST=$REDIS_HOST
@@ -85,28 +55,46 @@ EOF
 
 USE_CLOUD=true
 
-echo "✅ Environment configured"
-echo "🐳 Starting containers..."
-echo ""
+# Check if Docker is installed
+if ! command -v docker &> /dev/null; then
+    echo "❌ Docker is not installed. Installing Docker..."
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sudo sh get-docker.sh
+    sudo usermod -aG docker $USER
+    echo "✅ Docker installed. Please log out and log back in, then run this script again."
+    exit 0
+fi
 
-# Start appropriate environment based on choice
-if [[ "$USE_CLOUD" == "true" ]]; then
-    echo "Starting cloud-based environment..."
+# Check if Docker Compose is available
+if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+    echo "❌ Docker Compose is not available. Please install Docker Compose."
+    exit 1
+fi
 
-    # Clean up any existing containers first
-    docker-compose -f docker-compose-cloud.yml down --remove-orphans 2>/dev/null || true
+# Determine Docker Compose command
+if command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE="docker-compose"
+else
+    DOCKER_COMPOSE="docker compose"
+fi
 
-    if ! docker-compose -f docker-compose-cloud.yml up -d --build; then
-        echo "❌ Failed to start containers. Checking logs..."
-        docker-compose -f docker-compose-cloud.yml logs
-        exit 1
-    fi
+echo "🧹 Cleaning up any existing containers..."
+$DOCKER_COMPOSE -f docker-compose-cloud.yml down --remove-orphans
 
-    echo ""
-    echo "⏳ Waiting for services to start..."
-    sleep 15
+echo "🚀 Starting Redis RDI Training Environment..."
+$DOCKER_COMPOSE -f docker-compose-cloud.yml up -d
 
-    echo ""
+echo "⏳ Waiting for services to start..."
+sleep 10
+
+# Wait for PostgreSQL to be ready
+echo "🗄️ Waiting for PostgreSQL to be ready..."
+until docker exec postgresql pg_isready -U postgres -d chinook &>/dev/null; do
+    echo "   Still waiting for PostgreSQL..."
+    sleep 5
+done
+
+if [ "$USE_CLOUD" = true ]; then
     echo "🔍 Checking container status..."
     docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
@@ -132,13 +120,6 @@ if [[ "$USE_CLOUD" == "true" ]]; then
     echo "   - DNS: Y"
     echo "   - Upstream DNS: 8.8.8.8,8.8.4.4"
     echo "   - Source database: 5 (PostgreSQL)"
-<<<<<<< HEAD
-=======
-    echo ""
-    echo "🔗 Your Redis Cloud instance will be used for:"
-    echo "   ✅ RDI Metadata Database: $REDIS_HOST:$REDIS_PORT"
-    echo "   ✅ Target Database: $REDIS_HOST:$REDIS_PORT"
->>>>>>> 69cb40c (Implement Redis Cloud user input with standardized credentials)
     echo ""
     echo "🔗 Your Redis Cloud instance will be used for:"
     echo "   ✅ RDI Metadata Database: $REDIS_HOST:$REDIS_PORT"
@@ -146,23 +127,6 @@ if [[ "$USE_CLOUD" == "true" ]]; then
     echo ""
     echo "🔗 PostgreSQL connection for RDI:"
     echo "   Host: localhost, Port: 5433, User: postgres, Password: postgres, DB: chinook"
-else
-    echo "Starting local Redis environment..."
-    docker-compose up -d --build
-
     echo ""
-    echo "⏳ Waiting for services to start..."
-    sleep 30
-
-    echo ""
-    echo "🎉 Environment ready!"
-    echo ""
-    echo "📊 Redis Enterprise: https://localhost:8443 (admin@rl.org / redislabs)"
-    echo "🔍 Redis Insight: http://localhost:5540"
-    echo "📈 Grafana: http://localhost:3000 (admin / redislabs)"
-    echo "🗄️ SQLPad: http://localhost:3001 (admin@rl.org / redislabs)"
-    echo ""
-    echo "🧪 Test data flow:"
-    echo "   docker exec -w /scripts rdi-loadgen python3 generate_load.py"
+    echo "🛑 To stop: ./stop.sh"
 fi
-echo ""
