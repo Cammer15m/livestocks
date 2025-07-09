@@ -29,7 +29,6 @@ A complete Redis training environment using Docker containers. This setup provid
    - **Dashboard**: http://localhost:8080
    - **Redis Insight**: http://localhost:5540
    - **SQLPad (PostgreSQL)**: http://localhost:3001
-   - **Grafana**: http://localhost:3000
 
 ## Default Credentials
 
@@ -37,7 +36,6 @@ A complete Redis training environment using Docker containers. This setup provid
 |---------|----------|----------|-------|
 | **PostgreSQL** | postgres | postgres | Source database |
 | **SQLPad** | admin@rl.org | redislabs | PostgreSQL web interface |
-| **Grafana** | admin | redislabs | Monitoring dashboard |
 | **Redis Cloud** | default | redislabs | Target database (your instance) |
 
 ## Services Overview
@@ -58,11 +56,6 @@ A complete Redis training environment using Docker containers. This setup provid
 - **Access**: http://localhost:3001
 - **Login**: admin@rl.org / redislabs
 - **Pre-configured**: Connected to PostgreSQL chinook database
-
-### Grafana
-- **Purpose**: Monitoring and visualization dashboard
-- **Access**: http://localhost:3000
-- **Login**: admin / redislabs
 
 ### Web Dashboard
 - **Purpose**: Training instructions and lab exercises
@@ -160,7 +153,6 @@ docker exec rdi-postgres cat /etc/postgresql/postgresql.conf | grep -E "(wal_lev
 - **Redis Cloud**: Your target Redis database (external)
 - **Redis Insight**: Redis monitoring and management interface
 - **SQLPad**: Web-based PostgreSQL query interface
-- **Grafana**: Monitoring and visualization dashboard
 - **Web Dashboard**: Training instructions and lab exercises
 
 ## Troubleshooting
@@ -220,9 +212,7 @@ Redis_RDI_CTF/
 ├── postgresql.conf                    # PostgreSQL configuration
 ├── create_track_table.sql             # Database initialization
 ├── init-postgres-for-debezium.sql     # PostgreSQL setup for CDC
-├── web/                               # Web dashboard files
-├── grafana/                           # Grafana dashboards
-└── grafana_config/                    # Grafana configuration
+└── web/                               # Web dashboard files
 ```
 
 ## Cleanup

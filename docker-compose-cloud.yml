@@ -63,23 +63,7 @@ services:
       - './web:/usr/share/nginx/html'
     restart: unless-stopped
 
-  # Grafana for monitoring
-  grafana:
-    image: grafana/grafana
-    container_name: rdi-grafana
-    environment:
-      - GF_INSTALL_PLUGINS=redis-app,redis-datasource,grafana-clock-panel,grafana-simple-json-datasource
-      - GF_SECURITY_ADMIN_PASSWORD=redislabs
-    volumes:
-      - './grafana:/var/lib/grafana'
-      - './grafana_config/grafana.ini:/etc/grafana/grafana.ini'
-    ports:
-      - '3000:3000'
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+
 
 
 
