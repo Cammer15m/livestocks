@@ -32,21 +32,81 @@
 
         <div class="step">
             <h3>Step 2: Start the Environment</h3>
-            <div class="command">./quick-start.sh</div>
+            <div class="command">./start.sh</div>
             <p>The script will prompt you for your Redis Cloud connection details and automatically configure everything.</p>
         </div>
 
         <div class="step">
             <h3>Step 3: Configure RDI Pipeline</h3>
-            <div class="command">docker exec -it rdi-cli redis-di configure</div>
-            <div class="command">docker exec -it rdi-cli redis-di deploy --config /config/config-cloud.yaml</div>
-            <div class="command">docker exec -it rdi-cli redis-di start</div>
+            <p><strong>Access Redis Insight:</strong> <a href="http://localhost:5540" target="_blank">http://localhost:5540</a></p>
+            <p><strong>Add RDI Endpoint:</strong></p>
+            <ul>
+                <li>Go to "Redis Data Integration" tab</li>
+                <li>Click "+ Endpoint"</li>
+                <li>URL: <code>https://192.226.238.42</code> (no port - HTTPS uses 443 by default)</li>
+                <li>Username: default</li>
+                <li>Password: redislabs</li>
+            </ul>
+            <p><strong>Create New Pipeline:</strong></p>
+            <ul>
+                <li>Select the endpoint you just added</li>
+                <li>Click "Create New Pipeline"</li>
+                <li>Click "Cancel" on the template selection</li>
+                <li>Paste the following configuration (replace with your Redis details):</li>
+            </ul>
+            <div class="command">targets:
+  target:
+    connection:
+      type: redis
+      host: redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com  # replace with your instance
+      port: 17173  # replace with your port
+      user: default
+      password: redislabs
+
+sources:
+  psql:
+    type: cdc
+    logging:
+      level: info
+    connection:
+      type: postgresql
+      host: 192.168.0.148
+      port: 5432
+      database: chinook
+      user: postgres
+      password: postgres</div>
         </div>
 
         <div class="step">
-            <h3>Step 4: Generate Test Data</h3>
-            <div class="command">docker exec -it rdi-loadgen python /scripts/generate_load.py</div>
-            <p>This will start generating data changes in PostgreSQL that RDI will sync to Redis.</p>
+            <h3>Step 4: Create Job Configuration</h3>
+            <p><strong>Create a new job:</strong></p>
+            <ul>
+                <li>In the pipeline configuration, create a new job</li>
+                <li>Paste the following job configuration:</li>
+            </ul>
+            <div class="command">source:
+  table: Track
+
+transform:
+  - uses: add_field
+    with:
+      field: NameUpper
+      expression: upper("Name")
+      language: sql
+
+  - uses: filter
+    with:
+      expression: GenreId = 2
+      language: sql</div>
+            <p><strong>Deploy Pipeline:</strong> Click "Deploy Pipeline" to activate the data integration.</p>
+        </div>
+
+        <div class="step">
+            <h3>Step 5: Generate Test Data</h3>
+            <p>Use SQLPad to insert test data and watch it sync to Redis:</p>
+            <div class="command">INSERT INTO "Track" ("Name", "AlbumId", "MediaTypeId", "GenreId", "Composer", "Milliseconds", "Bytes", "UnitPrice")
+VALUES ('Test Metal Track', 1, 1, 2, 'Test Composer', 210000, 5000000, 0.99);</div>
+            <p>Note: Only tracks with GenreId = 2 (Metal) will be synced due to the filter.</p>
         </div>
     </div>
 
@@ -63,49 +123,54 @@
     <div class="section">
         <h2>🧪 Lab Exercises</h2>
 
-        <h3>Lab 1: Create RDI Pipeline in Redis Insight</h3>
-        <p><strong>Step 1:</strong> Validate PostgreSQL data in <a href="http://localhost:3001" target="_blank">SQLPad</a> (admin@rl.org / redislabs)</p>
-        <div class="command">SELECT * FROM "Track" ORDER BY "TrackId";</div>
+        <h3>Lab 1: Validate Source Data</h3>
+        <p><strong>Check PostgreSQL data:</strong> Use <a href="http://localhost:3001" target="_blank">SQLPad</a> (admin@rl.org / redislabs)</p>
+        <div class="command">SELECT * FROM "Track" WHERE "GenreId" = 2 ORDER BY "TrackId";</div>
+        <p>This shows the Metal tracks that will be synced to Redis (due to the GenreId = 2 filter).</p>
 
-        <p><strong>Step 2:</strong> Connect your Redis Cloud database in <a href="http://localhost:5540" target="_blank">Redis Insight</a></p>
+        <h3>Lab 2: Connect Redis Cloud in Redis Insight</h3>
+        <p><strong>Add your Redis database:</strong> <a href="http://localhost:5540" target="_blank">Redis Insight</a></p>
         <ul>
             <li>Click "+ Add Redis Database"</li>
-            <li>Enter your Redis Cloud connection details</li>
+            <li>Enter your Redis Cloud connection details from Step 1</li>
             <li>Test connection and add database</li>
         </ul>
 
-        <p><strong>Step 3:</strong> Create RDI Pipeline in Redis Insight</p>
+        <h3>Lab 3: Monitor Data Sync</h3>
+        <p><strong>After deploying the pipeline, monitor the data flow:</strong></p>
         <ul>
-            <li>Go to "Redis Data Integration" tab</li>
-            <li>Click "+ Endpoint" and configure:</li>
-            <ul>
-                <li>RDI Alias: rdi_cloud_pipeline</li>
-                <li>URL: https://localhost:13000</li>
-                <li>Username: default</li>
-                <li>Password: redislabs</li>
-            </ul>
-            <li>Create new pipeline with config targeting your Redis Cloud</li>
-            <li>Create Track table job with transformations (NameUpper field, GenreId=1 filter)</li>
-            <li>Deploy pipeline</li>
+            <li>Check Redis Insight for new keys appearing</li>
+            <li>Look for keys like: <code>Track:&lt;id&gt;</code></li>
+            <li>Verify the <code>NameUpper</code> field is added with uppercase track names</li>
+            <li>Confirm only Metal genre tracks (GenreId = 2) are synced</li>
         </ul>
 
-        <h3>Lab 2: Test Data Sync</h3>
-        <p>Insert test data in SQLPad and verify it appears in Redis Cloud:</p>
-        <div class="command">INSERT INTO "Track" ("TrackId", "Name", "AlbumId", "MediaTypeId", "GenreId", "Composer", "Milliseconds", "Bytes", "UnitPrice") VALUES (9999, 'Test Track', 1, 1, 1, 'Test Composer', 210000, 5000000, 0.99);</div>
+        <h3>Lab 4: Test Data Sync</h3>
+        <p><strong>Insert test data in SQLPad:</strong></p>
+        <div class="command">-- This will sync (GenreId = 2 = Metal)
+INSERT INTO "Track" ("Name", "AlbumId", "MediaTypeId", "GenreId", "Composer", "Milliseconds", "Bytes", "UnitPrice")
+VALUES ('My Metal Song', 1, 1, 2, 'Test Composer', 210000, 5000000, 0.99);
 
-        <h3>Lab 3: Continuous Data Flow</h3>
-        <p>Generate continuous data to see real-time CDC:</p>
-        <div class="command">docker exec -it rdi-loadgen python /scripts/generate_load.py</div>
-        <p>Watch data flow in real-time between PostgreSQL and Redis Cloud.</p>
+-- This will NOT sync (GenreId = 1 = Rock, filtered out)
+INSERT INTO "Track" ("Name", "AlbumId", "MediaTypeId", "GenreId", "Composer", "Milliseconds", "Bytes", "UnitPrice")
+VALUES ('My Rock Song', 1, 1, 1, 'Test Composer', 180000, 4500000, 0.99);</div>
+        <p><strong>Verify in Redis Insight:</strong> Only the Metal track should appear with the NameUpper field.</p>
+
+        <h3>Lab 5: Update Existing Data</h3>
+        <p><strong>Update a Metal track and watch it sync:</strong></p>
+        <div class="command">UPDATE "Track" SET "Name" = 'Updated Metal Track' WHERE "GenreId" = 2 AND "TrackId" = 2;</div>
+        <p>Check Redis Insight to see the updated data with the new NameUpper value.</p>
     </div>
 
     <div class="section">
         <h2>🛠️ Troubleshooting</h2>
         <ul>
-            <li><strong>Check RDI status:</strong> <code>docker exec -it rdi-cli redis-di status</code></li>
-            <li><strong>View RDI logs:</strong> <code>docker exec -it rdi-cli redis-di logs</code></li>
             <li><strong>Check containers:</strong> <code>docker ps</code></li>
-            <li><strong>Restart RDI:</strong> <code>docker exec -it rdi-cli redis-di restart</code></li>
+            <li><strong>Check PostgreSQL:</strong> <code>docker exec rdi-postgres pg_isready -U postgres</code></li>
+            <li><strong>View PostgreSQL logs:</strong> <code>docker logs rdi-postgres</code></li>
+            <li><strong>Test Redis connection:</strong> Use Redis Insight to verify your Redis Cloud connection</li>
+            <li><strong>Check RDI pipeline status:</strong> Use Redis Insight RDI tab to monitor pipeline status</li>
+            <li><strong>Restart environment:</strong> <code>./stop.sh && ./start.sh</code></li>
         </ul>
     </div>
 
@@ -113,9 +178,11 @@
         <h2>🎯 Success Criteria</h2>
         <p class="success">✅ You've successfully completed the training when:</p>
         <ul>
-            <li>RDI status shows "running"</li>
-            <li>Data appears in your Redis Cloud instance</li>
+            <li>RDI pipeline is deployed and running (visible in Redis Insight)</li>
+            <li>Metal tracks (GenreId = 2) appear in your Redis Cloud instance</li>
+            <li>Track records include the NameUpper field with uppercase names</li>
             <li>Changes in PostgreSQL sync to Redis in real-time</li>
+            <li>Only filtered data (Metal genre) is synced, not all tracks</li>
         </ul>
     </div>
 </body>
