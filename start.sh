@@ -56,11 +56,51 @@ EOF
 # Check if Docker is installed
 if ! command -v docker &> /dev/null; then
     echo "Docker is not installed. Installing Docker..."
-    curl -fsSL https://get.docker.com -o get-docker.sh
-    sudo sh get-docker.sh
-    sudo usermod -aG docker $USER
-    echo "Docker installed. Please log out and log back in, then run this script again."
-    exit 0
+
+    # Detect operating system
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        echo "Detected macOS. Installing Docker Desktop..."
+        if command -v brew &> /dev/null; then
+            echo "Using Homebrew to install Docker Desktop..."
+            brew install --cask docker
+            echo "Docker Desktop installed. Please:"
+            echo "1. Open Docker Desktop from Applications"
+            echo "2. Complete the setup process"
+            echo "3. Wait for Docker to start (whale icon in menu bar)"
+            echo "4. Then run this script again"
+        else
+            echo "Homebrew not found. Please install Docker Desktop manually:"
+            echo "1. Download from: https://www.docker.com/products/docker-desktop"
+            echo "2. Install Docker Desktop"
+            echo "3. Start Docker Desktop"
+            echo "4. Then run this script again"
+        fi
+        exit 0
+    else
+        # Linux
+        echo "Detected Linux. Installing Docker..."
+        curl -fsSL https://get.docker.com -o get-docker.sh
+        sudo sh get-docker.sh
+        sudo usermod -aG docker $USER
+        echo "Docker installed. Please log out and log back in, then run this script again."
+        exit 0
+    fi
+fi
+
+# Check if Docker daemon is running
+if ! docker info &> /dev/null; then
+    echo "Docker is installed but not running."
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "On macOS, please:"
+        echo "1. Open Docker Desktop from Applications"
+        echo "2. Wait for it to start completely"
+        echo "3. Then run this script again"
+    else
+        echo "Please start the Docker service:"
+        echo "sudo systemctl start docker"
+    fi
+    exit 1
 fi
 
 # Check if Docker Compose is available
