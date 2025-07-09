@@ -4,7 +4,8 @@ targets:
       type: redis
       host: <your cloud instance ie: redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com>
       port: <port>
-
+      user: default
+      password: redislabs
 sources:
   psql:
     type: cdc
