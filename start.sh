@@ -98,23 +98,19 @@ if ! command -v docker &> /dev/null; then
             echo "Docker command now available. Continuing..."
         else
             echo "Docker Desktop not found. Please install Docker Desktop..."
-
-    # Detect operating system
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS - Simple manual installation
-        echo "Docker not found on macOS."
-        echo ""
-        echo "QUICK MANUAL INSTALL (2-3 minutes):"
-        echo "1. Download: https://desktop.docker.com/mac/main/universal/Docker.dmg"
-        echo "2. Open the downloaded .dmg file"
-        echo "3. Drag Docker to Applications folder"
-        echo "4. Open Docker Desktop from Applications"
-        echo "5. Wait for Docker to start (whale icon in menu bar)"
-        echo "6. Then run this script again: ./start.sh"
-        echo ""
-        echo "Opening download page..."
-        open "https://www.docker.com/products/docker-desktop" 2>/dev/null || echo "Please visit: https://www.docker.com/products/docker-desktop"
-        exit 0
+            echo ""
+            echo "QUICK MANUAL INSTALL (2-3 minutes):"
+            echo "1. Download: https://desktop.docker.com/mac/main/universal/Docker.dmg"
+            echo "2. Open the downloaded .dmg file"
+            echo "3. Drag Docker to Applications folder"
+            echo "4. Open Docker Desktop from Applications"
+            echo "5. Wait for Docker to start (whale icon in menu bar)"
+            echo "6. Then run this script again: ./start.sh"
+            echo ""
+            echo "Opening download page..."
+            open "https://www.docker.com/products/docker-desktop" 2>/dev/null || echo "Please visit: https://www.docker.com/products/docker-desktop"
+            exit 0
+        fi
     else
         # Linux
         echo "Detected Linux. Installing Docker..."
