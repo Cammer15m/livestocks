@@ -4,6 +4,53 @@ set -euo pipefail
 echo "🚀 Starting Redis RDI CTF Lab with Helm-based RDI"
 echo "=================================================="
 
+# Gather Redis Cloud connection details from user
+echo ""
+echo "📋 Redis Cloud Configuration"
+echo "Please provide your Redis Cloud connection details:"
+echo "This Redis instance will be used for BOTH RDI metadata AND target data."
+echo ""
+echo "💡 Note: Please ensure your Redis Cloud instance is configured with:"
+echo "   Username: default"
+echo "   Password: redislabs"
+echo ""
+
+# Prompt for Redis Cloud details (only host and port)
+read -p "🔗 Redis Host (e.g., redis-12345.c1.region.ec2.redns.redis-cloud.com): " REDIS_HOST
+read -p "🔌 Redis Port (e.g., 12345): " REDIS_PORT
+
+# Set standard credentials
+REDIS_USER="default"
+REDIS_PASSWORD="redislabs"
+
+# Validate required fields
+if [[ -z "$REDIS_HOST" || -z "$REDIS_PORT" ]]; then
+    echo "❌ Error: Redis host and port are required!"
+    echo ""
+    echo "💡 Example Redis Cloud connection string:"
+    echo "   redis://default:redislabs@redis-12345.c1.region.ec2.redns.redis-cloud.com:12345"
+    echo ""
+    echo "   Host: redis-12345.c1.region.ec2.redns.redis-cloud.com"
+    echo "   Port: 12345"
+    echo "   Username: default (standard)"
+    echo "   Password: redislabs (standard)"
+    exit 1
+fi
+
+# Export for Docker Compose
+export REDIS_HOST
+export REDIS_PORT
+export REDIS_PASSWORD
+export REDIS_USER
+
+echo ""
+echo "✅ Redis Cloud configuration:"
+echo "   Host: $REDIS_HOST"
+echo "   Port: $REDIS_PORT"
+echo "   User: $REDIS_USER (standard)"
+echo "   Password: $REDIS_PASSWORD (standard)"
+echo ""
+
 # Check if Docker is installed
 if ! command -v docker &> /dev/null; then
     echo "❌ Docker is not installed. Please install Docker first."

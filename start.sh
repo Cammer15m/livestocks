@@ -4,13 +4,53 @@ echo "🚀 Redis RDI Training Environment"
 echo "=================================="
 echo ""
 
-# Silently configure shared Redis database for RDI metadata
+# Gather Redis Cloud connection details from user
+echo "📋 Redis Cloud Configuration"
+echo "Please provide your Redis Cloud connection details:"
+echo "This Redis instance will be used for BOTH RDI metadata AND target data."
+echo ""
+echo "💡 Note: Please ensure your Redis Cloud instance is configured with:"
+echo "   Username: default"
+echo "   Password: redislabs"
+echo ""
+
+# Prompt for Redis Cloud details (only host and port)
+read -p "🔗 Redis Host (e.g., redis-12345.c1.region.ec2.redns.redis-cloud.com): " REDIS_HOST
+read -p "🔌 Redis Port (e.g., 12345): " REDIS_PORT
+
+# Set standard credentials
+REDIS_USER="default"
+REDIS_PASSWORD="redislabs"
+
+# Validate required fields
+if [[ -z "$REDIS_HOST" || -z "$REDIS_PORT" ]]; then
+    echo "❌ Error: Redis host and port are required!"
+    echo ""
+    echo "💡 Example Redis Cloud connection string:"
+    echo "   redis://default:redislabs@redis-12345.c1.region.ec2.redns.redis-cloud.com:12345"
+    echo ""
+    echo "   Host: redis-12345.c1.region.ec2.redns.redis-cloud.com"
+    echo "   Port: 12345"
+    echo "   Username: default (standard)"
+    echo "   Password: redislabs (standard)"
+    exit 1
+fi
+
+echo ""
+echo "✅ Redis Cloud configuration:"
+echo "   Host: $REDIS_HOST"
+echo "   Port: $REDIS_PORT"
+echo "   User: $REDIS_USER (standard)"
+echo "   Password: $REDIS_PASSWORD (standard)"
+echo ""
+
+# Configure environment with user's Redis Cloud instance
 cat > .env << EOF
-# Shared Redis Configuration (automatically configured)
-REDIS_HOST=3.148.243.197
-REDIS_PORT=13000
-REDIS_PASSWORD=redislabs
-REDIS_USER=default
+# Redis Cloud Configuration (user provided)
+REDIS_HOST=$REDIS_HOST
+REDIS_PORT=$REDIS_PORT
+REDIS_PASSWORD=$REDIS_PASSWORD
+REDIS_USER=$REDIS_USER
 EOF
 
 USE_CLOUD=true
@@ -44,24 +84,28 @@ if [[ "$USE_CLOUD" == "true" ]]; then
     echo "🎉 Environment ready!"
     echo ""
     echo "📊 Dashboard: http://localhost:8080"
-    echo "🔍 Redis Insight: http://localhost:5540 (connect to shared Redis: 3.148.243.197:13000)"
+    echo "🔍 Redis Insight: http://localhost:5540 (connect to your Redis: $REDIS_HOST:$REDIS_PORT)"
     echo ""
     echo "🔧 RDI Manual Installation Required:"
     echo "   1. Access RDI container: docker exec -it rdi-manual bash"
     echo "   2. Navigate to RDI: cd /rdi/rdi_install/1.10.0/"
     echo "   3. Run installer: sudo ./install.sh"
     echo ""
-    echo "💡 Installation answers:"
-    echo "   - Hostname: 172.16.22.21 (or press enter)"
-    echo "   - Port: 12001"
+    echo "💡 Installation answers (using your Redis Cloud instance):"
+    echo "   - Hostname: $REDIS_HOST"
+    echo "   - Port: $REDIS_PORT"
     echo "   - Username: [press enter for default]"
-    echo "   - Password: redislabs"
+    echo "   - Password: redislabs (standard)"
     echo "   - TLS: N"
     echo "   - HTTPS port: 443"
     echo "   - iptables: Y"
     echo "   - DNS: Y"
     echo "   - Upstream DNS: 8.8.8.8,8.8.4.4"
-    echo "   - Source database: 2 (PostgreSQL)"
+    echo "   - Source database: 5 (PostgreSQL)"
+    echo ""
+    echo "🔗 Your Redis Cloud instance will be used for:"
+    echo "   ✅ RDI Metadata Database: $REDIS_HOST:$REDIS_PORT"
+    echo "   ✅ Target Database: $REDIS_HOST:$REDIS_PORT"
     echo ""
     echo "🧪 After installation, test RDI:"
     echo "   docker exec -it rdi-manual redis-di --help"
