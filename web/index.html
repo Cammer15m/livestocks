@@ -56,27 +56,11 @@ cd Redis_RDI_CTF</div>
                 <li>Select the endpoint you just added</li>
                 <li>Click "Create New Pipeline"</li>
                 <li>Click "Cancel" on the template selection</li>
-                <li>Paste the following configuration (replace with your Redis details):</li>
+                <li>Copy the configuration from <code>rdi_config.txt</code> in your project directory</li>
+                <li>Replace <code>&lt;your cloud instance&gt;</code> with your Redis Cloud host</li>
+                <li>Replace <code>&lt;port&gt;</code> with your Redis Cloud port</li>
+                <li>Paste the updated configuration into the pipeline editor</li>
             </ul>
-            <div class="command">targets:
-  target:
-    connection:
-      type: redis
-      host: 172.16.22.21  # replace with your Redis Cloud host
-      port: 12000  # replace with your Redis Cloud port
-
-sources:
-  psql:
-    type: cdc
-    logging:
-      level: info
-    connection:
-      type: postgresql
-      host: 172.16.22.7
-      port: 5432
-      database: chinook
-      user: postgres
-      password: postgres</div>
         </div>
 
         <div class="step">
@@ -84,22 +68,9 @@ sources:
             <p><strong>Create a new job:</strong></p>
             <ul>
                 <li>In the pipeline configuration, create a new job</li>
-                <li>Paste the following job configuration:</li>
+                <li>Copy the configuration from <code>job_config.txt</code> in your project directory</li>
+                <li>Paste the job configuration into the job editor</li>
             </ul>
-            <div class="command">source:
-  table: Track
-
-transform:
-  - uses: add_field
-    with:
-      field: NameUpper
-      expression: upper("Name")
-      language: sql
-
-  - uses: filter
-    with:
-      expression: GenreId = 2
-      language: sql</div>
             <p><strong>Deploy Pipeline:</strong> Click "Deploy Pipeline" to activate the data integration.</p>
         </div>
 
