@@ -50,10 +50,11 @@ services:
       - POSTGRES_DB=chinook
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - REDIS_HOST=redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com
-      - REDIS_PORT=17173
-      - REDIS_USER=default
-      - REDIS_PASSWORD=redislabs
+      # Redis Cloud connection (provided by user via start.sh)
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_USER=${REDIS_USER}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
       - './from-repo/scripts:/scripts'
       - './rdi-config:/rdi-config'

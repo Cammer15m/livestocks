@@ -7,6 +7,35 @@ echo ""
 # Gather Redis Cloud connection details from user
 echo "📋 Redis Cloud Configuration"
 echo "Please provide your Redis Cloud connection details:"
+<<<<<<< HEAD
+echo ""
+
+# Prompt for Redis Cloud details
+read -p "🔗 Redis Host (e.g., redis-12345.c1.region.ec2.redns.redis-cloud.com): " REDIS_HOST
+read -p "🔌 Redis Port (e.g., 12345): " REDIS_PORT
+read -p "🔑 Redis Password: " REDIS_PASSWORD
+read -p "👤 Redis Username (default: 'default'): " REDIS_USER
+
+# Set defaults if empty
+REDIS_USER=${REDIS_USER:-default}
+
+# Validate required fields
+if [[ -z "$REDIS_HOST" || -z "$REDIS_PORT" || -z "$REDIS_PASSWORD" ]]; then
+    echo "❌ Error: Redis host, port, and password are required!"
+    echo ""
+    echo "💡 Example Redis Cloud connection string:"
+    echo "   redis://default:password@redis-12345.c1.region.ec2.redns.redis-cloud.com:12345"
+    echo ""
+    echo "   Host: redis-12345.c1.region.ec2.redns.redis-cloud.com"
+    echo "   Port: 12345"
+    echo "   Password: your-password"
+    echo "   Username: default"
+    exit 1
+fi
+
+# Configure environment with user's Redis Cloud instance
+# This Redis instance will be used for BOTH RDI metadata AND target data
+=======
 echo "This Redis instance will be used for BOTH RDI metadata AND target data."
 echo ""
 echo "💡 Note: Please ensure your Redis Cloud instance is configured with:"
@@ -45,6 +74,7 @@ echo "   Password: $REDIS_PASSWORD (standard)"
 echo ""
 
 # Configure environment with user's Redis Cloud instance
+>>>>>>> 69cb40c (Implement Redis Cloud user input with standardized credentials)
 cat > .env << EOF
 # Redis Cloud Configuration (user provided)
 REDIS_HOST=$REDIS_HOST
@@ -102,14 +132,20 @@ if [[ "$USE_CLOUD" == "true" ]]; then
     echo "   - DNS: Y"
     echo "   - Upstream DNS: 8.8.8.8,8.8.4.4"
     echo "   - Source database: 5 (PostgreSQL)"
+<<<<<<< HEAD
+=======
+    echo ""
+    echo "🔗 Your Redis Cloud instance will be used for:"
+    echo "   ✅ RDI Metadata Database: $REDIS_HOST:$REDIS_PORT"
+    echo "   ✅ Target Database: $REDIS_HOST:$REDIS_PORT"
+>>>>>>> 69cb40c (Implement Redis Cloud user input with standardized credentials)
     echo ""
     echo "🔗 Your Redis Cloud instance will be used for:"
     echo "   ✅ RDI Metadata Database: $REDIS_HOST:$REDIS_PORT"
     echo "   ✅ Target Database: $REDIS_HOST:$REDIS_PORT"
     echo ""
-    echo "🧪 After installation, test RDI:"
-    echo "   docker exec -it rdi-manual redis-di --help"
-    echo "   docker exec -it rdi-manual redis-di status"
+    echo "🔗 PostgreSQL connection for RDI:"
+    echo "   Host: localhost, Port: 5433, User: postgres, Password: postgres, DB: chinook"
 else
     echo "Starting local Redis environment..."
     docker-compose up -d --build
