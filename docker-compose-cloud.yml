@@ -30,39 +30,7 @@ services:
     volumes:
       - redis-insight-data:/data
 
-# Redis Enterprise removed - using shared Redis database
-
-  # RDI container with systemd for K3s support
-  rdi-manual:
-    build:
-      context: .
-      dockerfile: rdi-manual.dockerfile
-    container_name: rdi-manual
-    privileged: true
-    ports:
-      - '2222:22'      # SSH access for manual installation
-      - '443:443'      # RDI HTTPS port
-      - '12001:12001'  # RDI API port
-      - '13000:13000'  # Alternative RDI port
-    environment:
-      - POSTGRES_HOST=postgresql
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=chinook
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      # Redis Cloud connection (provided by user via start.sh)
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - REDIS_USER=${REDIS_USER}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-    volumes:
-      - './from-repo/scripts:/scripts'
-      - './rdi-config:/rdi-config'
-      - '/sys/fs/cgroup:/sys/fs/cgroup:ro'  # Required for systemd
-      - '/var/lib:/var/lib'                 # Required for systemd
-    depends_on:
-      postgresql:
-        condition: service_healthy
+# RDI removed - users will use shared/common RDI instance
 
   # SQLPad for PostgreSQL queries
   sqlpad:
@@ -113,16 +81,7 @@ services:
       timeout: 10s
       retries: 5
 
-  # Prometheus for metrics
-  prometheus:
-    image: prom/prometheus
-    container_name: rdi-prometheus
-    volumes:
-      - './prometheus/:/etc/prometheus/'
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-    ports:
-      - '9090:9090'
+
 
 volumes:
   redis-insight-data:
