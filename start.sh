@@ -55,27 +55,29 @@ EOF
 
 # Check if Docker is installed
 if ! command -v docker &> /dev/null; then
-    echo "Docker is not installed. Installing Docker..."
+    # Check if Docker Desktop is installed but not in PATH (common on macOS)
+    if [[ "$OSTYPE" == "darwin"* ]] && [[ -f "/Applications/Docker.app/Contents/Resources/bin/docker" ]]; then
+        echo "Docker Desktop found but not in PATH. Adding to PATH..."
+        export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
+        echo "Docker command now available. Continuing..."
+    else
+        echo "Docker is not installed. Installing Docker..."
 
     # Detect operating system
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS
-        echo "Detected macOS. Installing Docker Desktop..."
-        if command -v brew &> /dev/null; then
-            echo "Using Homebrew to install Docker Desktop..."
-            brew install --cask docker
-            echo "Docker Desktop installed. Please:"
-            echo "1. Open Docker Desktop from Applications"
-            echo "2. Complete the setup process"
-            echo "3. Wait for Docker to start (whale icon in menu bar)"
-            echo "4. Then run this script again"
-        else
-            echo "Homebrew not found. Please install Docker Desktop manually:"
-            echo "1. Download from: https://www.docker.com/products/docker-desktop"
-            echo "2. Install Docker Desktop"
-            echo "3. Start Docker Desktop"
-            echo "4. Then run this script again"
-        fi
+        # macOS - Simple manual installation
+        echo "Docker not found on macOS."
+        echo ""
+        echo "QUICK MANUAL INSTALL (2-3 minutes):"
+        echo "1. Download: https://desktop.docker.com/mac/main/universal/Docker.dmg"
+        echo "2. Open the downloaded .dmg file"
+        echo "3. Drag Docker to Applications folder"
+        echo "4. Open Docker Desktop from Applications"
+        echo "5. Wait for Docker to start (whale icon in menu bar)"
+        echo "6. Then run this script again: ./start.sh"
+        echo ""
+        echo "Opening download page..."
+        open "https://www.docker.com/products/docker-desktop" 2>/dev/null || echo "Please visit: https://www.docker.com/products/docker-desktop"
         exit 0
     else
         # Linux
