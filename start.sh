@@ -161,15 +161,33 @@ fi
 if ! docker info &> /dev/null; then
     echo "Docker is installed but not running."
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        echo "On macOS, please:"
-        echo "1. Open Docker Desktop from Applications"
-        echo "2. Wait for it to start completely"
-        echo "3. Then run this script again"
+        echo "Starting Docker Desktop automatically..."
+        open -a Docker
+
+        echo "Waiting for Docker to start (this may take 30-60 seconds)..."
+        sleep 10
+
+        # Wait for Docker daemon to be ready
+        local max_attempts=30
+        local attempt=1
+        while ! docker info &>/dev/null && [ $attempt -le $max_attempts ]; do
+            echo "Waiting for Docker daemon... (attempt $attempt/$max_attempts)"
+            sleep 2
+            ((attempt++))
+        done
+
+        if docker info &>/dev/null; then
+            echo "Docker is now running and ready!"
+        else
+            echo "Docker Desktop is starting but not ready yet."
+            echo "Please wait a moment and run the script again: ./start.sh"
+            exit 0
+        fi
     else
         echo "Please start the Docker service:"
         echo "sudo systemctl start docker"
+        exit 1
     fi
-    exit 1
 fi
 
 # Check if Docker Compose is available
