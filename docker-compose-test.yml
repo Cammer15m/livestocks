@@ -1,5 +1,5 @@
 services:
-  # PostgreSQL source database
+  # PostgreSQL source database with Debezium support
   postgresql:
     image: 'postgres:15.3-bullseye'
     container_name: rdi-postgres-test
@@ -10,7 +10,10 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     volumes:
-      - './create_track_table.sql:/docker-entrypoint-initdb.d/create_track_table.sql'
+      - './create_track_table.sql:/docker-entrypoint-initdb.d/01-create_track_table.sql'
+      - './init-postgres-for-debezium.sql:/docker-entrypoint-initdb.d/02-init-postgres-for-debezium.sql'
+      - './postgresql.conf:/etc/postgresql/postgresql.conf'
+    command: ['postgres', '-c', 'config_file=/etc/postgresql/postgresql.conf']
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]

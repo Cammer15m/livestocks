@@ -23,6 +23,17 @@ RUN apt-get update && apt-get install -y \
 # Enable systemd for RDI installation
 RUN systemctl set-default multi-user.target
 
+# Configure systemd to work in container
+RUN cd /lib/systemd/system/sysinit.target.wants/; \
+    ls | grep -v systemd-tmpfiles-setup | xargs rm -f $1; \
+    rm -f /lib/systemd/system/multi-user.target.wants/*; \
+    rm -f /etc/systemd/system/*.wants/*; \
+    rm -f /lib/systemd/system/local-fs.target.wants/*; \
+    rm -f /lib/systemd/system/sockets.target.wants/*udev*; \
+    rm -f /lib/systemd/system/sockets.target.wants/*initctl*; \
+    rm -f /lib/systemd/system/basic.target.wants/*; \
+    rm -f /lib/systemd/system/anaconda.target.wants/*;
+
 
 
 
@@ -95,4 +106,29 @@ netstat -tlnp || ss -tlnp\n\
 tail -f /dev/null\n\
 ' > /start.sh && chmod +x /start.sh
 
-CMD ["/start.sh"]
+# Create a script that starts systemd properly and runs RDI installation
+RUN echo '#!/bin/bash\n\
+set -e\n\
+\n\
+echo "Starting systemd..."\n\
+# Start systemd as PID 1 would, but in background\n\
+/lib/systemd/systemd &\n\
+SYSTEMD_PID=$!\n\
+\n\
+echo "Waiting for systemd to initialize..."\n\
+sleep 15\n\
+\n\
+echo "Running RDI installation..."\n\
+cd /rdi/rdi_install/1.10.0/\n\
+echo -e "3.148.243.197\\n13000\\n\\nredislabs\\nN\\n\\ny\\n" | sudo ./install.sh -l DEBUG\n\
+\n\
+echo "RDI installation completed!"\n\
+echo "Checking RDI status..."\n\
+ps aux | grep -i rdi || true\n\
+netstat -tlnp | grep 443 || ss -tlnp | grep 443 || true\n\
+\n\
+echo "Keeping container running..."\n\
+tail -f /dev/null\n\
+' > /rdi-init.sh && chmod +x /rdi-init.sh
+
+CMD ["/rdi-init.sh"]

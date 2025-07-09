@@ -21,26 +21,28 @@ A complete Redis Data Integration (RDI) training environment using Docker contai
 2. **Start the environment:**
    ```bash
    ./start.sh
-   # Redis is automatically configured - no user input required!
+   # PostgreSQL and Redis Insight start automatically
    ```
 
-3. **Access the services:**
-   - **Redis Enterprise UI**: http://localhost:8443
+3. **Install RDI manually (required):**
+   ```bash
+   ./install-rdi.sh
+   # Follow the guided installation process
+   ```
+
+4. **Access the services:**
    - **Redis Insight**: http://localhost:5540
-   - **Grafana**: http://localhost:3000
    - **PostgreSQL**: localhost:5432
-   - **Prometheus**: http://localhost:9090
-   - **SQLPad**: http://localhost:3001
-   - **Docker Logs**: http://localhost:8080
+   - **RDI Container**: `docker exec -it rdi-manual bash`
+   - **SSH Access**: `ssh labuser@localhost -p 2222` (password: redislabs)
 
 ## Default Credentials
 
 | Service | Username | Password | Notes |
 |---------|----------|----------|-------|
-| **Redis Enterprise** | admin@rl.org | redislabs | Main Redis cluster management |
-| **Grafana** | admin | redislabs | Monitoring dashboards |
 | **PostgreSQL** | postgres | postgres | Source database |
-| **SQLPad** | admin@rl.org | redislabs | Database query interface |
+| **RDI Container** | labuser | redislabs | SSH/container access |
+| **Shared Redis** | default | redislabs | RDI metadata database |
 
 ## Redis Database Configuration
 
@@ -60,6 +62,51 @@ The environment automatically connects to a pre-configured Redis database:
 ```
 
 **No setup required** - the shared Redis database is ready to use immediately.
+
+## RDI Manual Installation
+
+After starting the environment, you need to manually install RDI in the container:
+
+### Quick Installation
+```bash
+# Use the guided installation helper
+./install-rdi.sh
+```
+
+### Manual Installation Steps
+```bash
+# 1. Access the RDI container
+docker exec -it rdi-manual bash
+
+# 2. Navigate to RDI installation directory
+cd /rdi/rdi_install/1.10.0/
+
+# 3. Run the installer
+sudo ./install.sh
+```
+
+### Installation Prompts and Answers
+| Prompt | Suggested Answer | Notes |
+|--------|------------------|-------|
+| RDI hostname | [press enter] | Uses container IP automatically |
+| RDI port | 12001 | Default RDI API port |
+| Username | [press enter] | Uses 'default' user |
+| Password | redislabs | Standard password |
+| Use TLS? | N | No TLS for lab environment |
+| HTTPS port | 443 | Default HTTPS port |
+| iptables? | Y | Allow firewall configuration |
+| DNS? | Y | Configure DNS settings |
+| Upstream DNS | 8.8.8.8,8.8.4.4 | Google DNS servers |
+| Source database | 2 | Select PostgreSQL |
+
+### Verify Installation
+```bash
+# Check RDI status
+redis-di status
+
+# Test RDI commands
+redis-di --help
+```
 
 ## Using Redis Insight
 
@@ -368,22 +415,27 @@ cd .. && rm -rf Redis_RDI_CTF
 
 ```
 Redis_RDI_CTF/
-├── 📖 README.md                 # This file
-├── 🐳 Dockerfile                # Container definition
-├── 🐳 docker-compose.yml        # Service orchestration
-├── ⚙️  .env                     # Environment configuration
-├── 🧪 labs/                     # Hands-on exercises
-│   ├── 01_postgres_to_redis/    # Lab 1: Basic integration
-│   ├── 02_snapshot_vs_cdc/      # Lab 2: Replication modes
-│   └── 03_advanced_rdi/         # Lab 3: Advanced features
-├── 🔧 scripts/                  # Utility scripts
-│   ├── check_flags.py           # Progress checker
-│   ├── rdi_connector.py         # Main RDI simulation
-│   └── rdi_web.py               # Web monitoring interface
-├── 🌱 seed/                     # Sample data
-│   └── music_database.sql       # Chinook database
-├── 🐳 docker/                   # Container support files
-└── 📚 docs/                     # Documentation
+├── 📖 README.md                          # This file
+├── 🐳 docker-compose-cloud.yml          # Main cloud configuration
+├── 🐳 docker-compose-*.yml              # Various deployment configs
+├── 🗄️ postgresql.conf                   # PostgreSQL config for Debezium
+├── 🗄️ create_track_table.sql            # Database initialization
+├── 🗄️ init-postgres-for-debezium.sql    # Debezium setup script
+├── 🔍 verify-postgres-config.sh         # Configuration verification
+├── 🔧 install-rdi.sh                    # RDI installation helper
+├── 🔧 test-debezium-config.sh           # Test PostgreSQL setup
+├── ⚙️ rdi-config/                       # RDI configuration files
+│   ├── config-cloud.yaml               # Cloud Redis connection
+│   └── application.properties.template  # Debezium properties
+├── 🧪 from-repo/                        # Lab exercises and scripts
+│   ├── scripts/                         # Utility scripts
+│   │   ├── generate_load.py             # Data load generator
+│   │   └── track.csv                    # Sample data
+│   └── ingest_config/                   # RDI pipeline configs
+├── 🌐 web/                              # Web interface
+├── 🐳 rdi-manual.dockerfile             # Simple RDI container for manual setup
+├── 🐳 *.dockerfile                      # Other container definitions
+└── 📚 grafana/                          # Monitoring dashboards
 ```
 
 ## 🔧 Troubleshooting
@@ -422,16 +474,39 @@ cat .env
 docker exec redis-rdi-ctf python3 -c "import redis; r=redis.from_url('your-redis-url'); print(r.ping())"
 ```
 
+### **PostgreSQL Configuration for Debezium**
+
+This environment automatically configures PostgreSQL with the required settings for Debezium logical replication:
+
+**Key Configuration Changes:**
+- `wal_level = logical` - Enables logical replication for CDC
+- `max_replication_slots = 10` - Allows multiple replication connections
+- `max_wal_senders = 10` - Supports concurrent replication streams
+- Replication permissions for postgres user
+
+**Verification:**
+```bash
+# Verify PostgreSQL configuration for Debezium
+./verify-postgres-config.sh
+
+# Manual verification
+docker exec <postgres-container> psql -U postgres -d chinook -c "SHOW wal_level;"
+docker exec <postgres-container> psql -U postgres -d chinook -c "SHOW max_replication_slots;"
+```
+
 ### **PostgreSQL Issues**
 ```bash
 # Check PostgreSQL status
-docker exec redis-rdi-ctf pg_isready -U rdi_user -d rdi_db
+docker exec rdi-postgres pg_isready -U postgres
 
 # Access PostgreSQL directly
-docker exec -it redis-rdi-ctf psql -U rdi_user -d rdi_db
+docker exec -it rdi-postgres psql -U postgres -d chinook
 
 # View PostgreSQL logs
-docker exec redis-rdi-ctf tail -f /var/log/postgresql.log
+docker logs rdi-postgres
+
+# Check configuration
+docker exec rdi-postgres cat /etc/postgresql/postgresql.conf | grep -E "(wal_level|max_replication_slots|max_wal_senders)"
 ```
 
 ### **Port Conflicts**

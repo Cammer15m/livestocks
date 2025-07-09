@@ -1,5 +1,5 @@
 services:
-  # PostgreSQL source database
+  # PostgreSQL source database with Debezium support
   postgresql:
     image: 'postgres:15.3-bullseye'
     container_name: rdi-postgres
@@ -10,7 +10,10 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     volumes:
-      - './create_track_table.sql:/docker-entrypoint-initdb.d/create_track_table.sql'
+      - './create_track_table.sql:/docker-entrypoint-initdb.d/01-create_track_table.sql'
+      - './init-postgres-for-debezium.sql:/docker-entrypoint-initdb.d/02-init-postgres-for-debezium.sql'
+      - './postgresql.conf:/etc/postgresql/postgresql.conf'
+    command: ['postgres', '-c', 'config_file=/etc/postgresql/postgresql.conf']
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -29,28 +32,33 @@ services:
 
 # Redis Enterprise removed - using shared Redis database
 
-  # RDI CLI container (using official image like rdi-training)
-  rdi-cli:
+  # RDI container with systemd for K3s support
+  rdi-manual:
     build:
       context: .
-      dockerfile: rdi.dockerfile
-    container_name: rdi-cli
+      dockerfile: rdi-manual.dockerfile
+    container_name: rdi-manual
+    privileged: true
     ports:
-      - '13000:13000'
-      - '443:443'
+      - '2222:22'      # SSH access for manual installation
+      - '443:443'      # RDI HTTPS port
+      - '12001:12001'  # RDI API port
+      - '13000:13000'  # Alternative RDI port
     environment:
       - POSTGRES_HOST=postgresql
       - POSTGRES_PORT=5432
       - POSTGRES_DB=chinook
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - REDIS_HOST=3.148.243.197
-      - REDIS_PORT=13000
+      - REDIS_HOST=redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com
+      - REDIS_PORT=17173
       - REDIS_USER=default
       - REDIS_PASSWORD=redislabs
     volumes:
       - './from-repo/scripts:/scripts'
       - './rdi-config:/rdi-config'
+      - '/sys/fs/cgroup:/sys/fs/cgroup:ro'  # Required for systemd
+      - '/var/lib:/var/lib'                 # Required for systemd
     depends_on:
       postgresql:
         condition: service_healthy
