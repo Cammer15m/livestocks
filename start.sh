@@ -53,33 +53,82 @@ REDIS_PASSWORD=$REDIS_PASSWORD
 REDIS_USER=$REDIS_USER
 EOF
 
+# Function to install Docker Desktop automatically on macOS
+install_docker_macos() {
+    echo "Installing Docker Desktop automatically..."
+
+    # Download Docker Desktop
+    echo "Downloading Docker Desktop..."
+    curl -L -o /tmp/Docker.dmg "https://desktop.docker.com/mac/main/universal/Docker.dmg"
+
+    # Mount the DMG
+    echo "Mounting Docker installer..."
+    hdiutil attach /tmp/Docker.dmg -quiet
+
+    # Copy Docker to Applications
+    echo "Installing Docker to Applications..."
+    cp -R "/Volumes/Docker/Docker.app" "/Applications/"
+
+    # Unmount the DMG
+    hdiutil detach "/Volumes/Docker" -quiet
+
+    # Clean up
+    rm /tmp/Docker.dmg
+
+    echo "Docker Desktop installed successfully!"
+
+    # Add Docker to PATH immediately
+    export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
+
+    # Add to shell profile permanently
+    SHELL_PROFILE=""
+    if [[ -n "$ZSH_VERSION" ]] || [[ "$SHELL" == *"zsh"* ]]; then
+        SHELL_PROFILE="$HOME/.zshrc"
+    elif [[ -n "$BASH_VERSION" ]] || [[ "$SHELL" == *"bash"* ]]; then
+        SHELL_PROFILE="$HOME/.bash_profile"
+    fi
+
+    if [[ -n "$SHELL_PROFILE" ]]; then
+        if ! grep -q "/Applications/Docker.app/Contents/Resources/bin" "$SHELL_PROFILE" 2>/dev/null; then
+            echo 'export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"' >> "$SHELL_PROFILE"
+            echo "Added Docker to $SHELL_PROFILE for future terminal sessions"
+        fi
+    fi
+
+    # Start Docker Desktop
+    echo "Starting Docker Desktop..."
+    open -a Docker
+
+    echo "Waiting for Docker to start (this may take 30-60 seconds)..."
+    sleep 10
+
+    # Wait for Docker daemon to be ready
+    local max_attempts=30
+    local attempt=1
+    while ! docker info &>/dev/null && [ $attempt -le $max_attempts ]; do
+        echo "Waiting for Docker daemon... (attempt $attempt/$max_attempts)"
+        sleep 2
+        ((attempt++))
+    done
+
+    if docker info &>/dev/null; then
+        echo "Docker is now running and ready!"
+    else
+        echo "Docker installation completed but daemon not ready yet."
+        echo "Please wait a moment and run the script again: ./start.sh"
+        exit 0
+    fi
+}
+
 # Check if Docker is installed
 if ! command -v docker &> /dev/null; then
-    # On macOS, try to find Docker and add it to PATH permanently
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        echo "Docker command not found. Searching for Docker Desktop..."
+        # Check if Docker Desktop exists but not in PATH
+        if [[ -f "/Applications/Docker.app/Contents/Resources/bin/docker" ]]; then
+            echo "Docker Desktop found but not in PATH. Adding to PATH..."
+            export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
 
-        # Common Docker Desktop locations
-        DOCKER_PATHS=(
-            "/Applications/Docker.app/Contents/Resources/bin"
-            "/usr/local/bin"
-            "/opt/homebrew/bin"
-        )
-
-        DOCKER_FOUND=""
-        for path in "${DOCKER_PATHS[@]}"; do
-            if [[ -f "$path/docker" ]]; then
-                DOCKER_FOUND="$path"
-                echo "Found Docker at: $path/docker"
-                break
-            fi
-        done
-
-        if [[ -n "$DOCKER_FOUND" ]]; then
-            echo "Adding Docker to PATH permanently..."
-            export PATH="$DOCKER_FOUND:$PATH"
-
-            # Add to shell profile for permanent access
+            # Add to shell profile permanently
             SHELL_PROFILE=""
             if [[ -n "$ZSH_VERSION" ]] || [[ "$SHELL" == *"zsh"* ]]; then
                 SHELL_PROFILE="$HOME/.zshrc"
@@ -88,28 +137,14 @@ if ! command -v docker &> /dev/null; then
             fi
 
             if [[ -n "$SHELL_PROFILE" ]]; then
-                # Check if PATH already contains Docker
-                if ! grep -q "$DOCKER_FOUND" "$SHELL_PROFILE" 2>/dev/null; then
-                    echo "export PATH=\"$DOCKER_FOUND:\$PATH\"" >> "$SHELL_PROFILE"
+                if ! grep -q "/Applications/Docker.app/Contents/Resources/bin" "$SHELL_PROFILE" 2>/dev/null; then
+                    echo 'export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"' >> "$SHELL_PROFILE"
                     echo "Added Docker to $SHELL_PROFILE for future terminal sessions"
                 fi
             fi
-
-            echo "Docker command now available. Continuing..."
         else
-            echo "Docker Desktop not found. Please install Docker Desktop..."
-            echo ""
-            echo "QUICK MANUAL INSTALL (2-3 minutes):"
-            echo "1. Download: https://desktop.docker.com/mac/main/universal/Docker.dmg"
-            echo "2. Open the downloaded .dmg file"
-            echo "3. Drag Docker to Applications folder"
-            echo "4. Open Docker Desktop from Applications"
-            echo "5. Wait for Docker to start (whale icon in menu bar)"
-            echo "6. Then run this script again: ./start.sh"
-            echo ""
-            echo "Opening download page..."
-            open "https://www.docker.com/products/docker-desktop" 2>/dev/null || echo "Please visit: https://www.docker.com/products/docker-desktop"
-            exit 0
+            # Docker not installed, install it automatically
+            install_docker_macos
         fi
     else
         # Linux
