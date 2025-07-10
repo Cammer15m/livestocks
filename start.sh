@@ -14,25 +14,25 @@ echo "   Username: default"
 echo "   Password: redislabs"
 echo ""
 
-# Prompt for Redis Cloud details (only host and port)
+# Prompt for Redis Cloud details (host, port, username, and password)
 read -p "Redis Host (e.g., redis-12345.c1.region.ec2.redns.redis-cloud.com): " REDIS_HOST
 read -p "Redis Port (e.g., 12345): " REDIS_PORT
-
-# Set standard credentials
-REDIS_USER="default"
-REDIS_PASSWORD="redislabs"
+read -p "Redis Username (default: default): " REDIS_USER
+REDIS_USER=${REDIS_USER:-default}  # Use 'default' if no input provided
+read -s -p "Redis Password: " REDIS_PASSWORD
+echo ""  # Add a newline after password input
 
 # Validate required fields
-if [[ -z "$REDIS_HOST" || -z "$REDIS_PORT" ]]; then
-    echo "Error: Redis host and port are required!"
+if [[ -z "$REDIS_HOST" || -z "$REDIS_PORT" || -z "$REDIS_PASSWORD" ]]; then
+    echo "Error: Redis host, port, and password are required!"
     echo ""
     echo "Example Redis Cloud connection string:"
-    echo "   redis://default:redislabs@redis-12345.c1.region.ec2.redns.redis-cloud.com:12345"
+    echo "   redis://<username>:<password>@redis-12345.c1.region.ec2.redns.redis-cloud.com:12345"
     echo ""
     echo "   Host: redis-12345.c1.region.ec2.redns.redis-cloud.com"
     echo "   Port: 12345"
-    echo "   Username: default (standard)"
-    echo "   Password: redislabs (standard)"
+    echo "   Username: default (or your custom username)"
+    echo "   Password: your-password"
     exit 1
 fi
 
@@ -40,8 +40,8 @@ echo ""
 echo "Redis Cloud configuration:"
 echo "   Host: $REDIS_HOST"
 echo "   Port: $REDIS_PORT"
-echo "   User: $REDIS_USER (standard)"
-echo "   Password: $REDIS_PASSWORD (standard)"
+echo "   User: $REDIS_USER"
+echo "   Password: ********"
 echo ""
 
 # Configure environment with user's Redis Cloud instance
@@ -236,6 +236,6 @@ echo "Your Redis Cloud target database:"
 echo "   Host: $REDIS_HOST"
 echo "   Port: $REDIS_PORT"
 echo "   User: $REDIS_USER"
-echo "   Password: $REDIS_PASSWORD"
+echo "   Password: ********"
 echo ""
 echo "To stop: ./stop.sh"
