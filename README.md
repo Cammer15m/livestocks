@@ -36,7 +36,7 @@ A complete Redis training environment using Docker containers. This setup provid
 |---------|----------|----------|-------|
 | **PostgreSQL** | postgres | postgres | Source database |
 | **SQLPad** | admin@rl.org | redislabs | PostgreSQL web interface |
-| **Redis Cloud** | default | redislabs | Target database (your instance) |
+| **Redis Cloud** | your-username | your-password | Target database (your instance) |
 
 ## Services Overview
 
@@ -82,8 +82,8 @@ open http://localhost:5540
 # Add your Redis Cloud connection:
 # Host: your-redis-host.redns.redis-cloud.com
 # Port: your-port
-# Username: default
-# Password: redislabs
+# Username: your-username
+# Password: your-password
 ```
 
 ### Generate Test Data
@@ -198,7 +198,7 @@ sudo lsof -ti:5432 | xargs kill -9
 ### Redis Cloud Connection
 ```bash
 # Test Redis connection (replace with your details)
-redis-cli -h your-redis-host.redns.redis-cloud.com -p your-port -a redislabs ping
+redis-cli -h your-redis-host.redns.redis-cloud.com -p your-port -a your-password ping
 ```
 
 ## Directory Structure

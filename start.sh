@@ -9,9 +9,8 @@ echo "Redis Cloud Configuration"
 echo "Please provide your Redis Cloud connection details:"
 echo "This Redis instance will be used as the target database."
 echo ""
-echo "Note: Please ensure your Redis Cloud instance is configured with:"
-echo "   Username: default"
-echo "   Password: redislabs"
+echo "Note: You will be prompted for your Redis Cloud credentials."
+echo "   Most Redis Cloud instances use 'default' as the username."
 echo ""
 
 # Prompt for Redis Cloud details (host, port, username, and password)
