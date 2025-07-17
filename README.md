@@ -169,6 +169,9 @@ docker logs rdi-sqlpad
 
 # Restart services
 ./stop.sh && ./start.sh
+
+# Quick diagnostic
+./diagnose.sh
 ```
 
 ### PostgreSQL Issues
