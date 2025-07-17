@@ -6,53 +6,32 @@ echo ""
 
 # Gather Redis Cloud connection details from user
 echo "Redis Cloud Configuration"
-echo "Please provide your Redis Cloud connection details:"
+echo "Please paste your Redis Cloud connection string:"
 echo "This Redis instance will be used as the target database."
 echo ""
-echo "Option 1: Paste your full Redis connection string"
-echo "Option 2: Enter individual connection details"
+echo "Format: redis://username:password@host:port"
+echo "Example: redis://default:mypassword@redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com:17173"
 echo ""
+read -p "Redis connection string: " REDIS_CONNECTION_STRING
 
-# Ask user for preference
-read -p "Do you want to paste the full Redis connection string? (y/n): " USE_CONNECTION_STRING
+# Parse the connection string
+if [[ $REDIS_CONNECTION_STRING =~ redis://([^:]+):([^@]+)@([^:]+):([0-9]+) ]]; then
+    REDIS_USER="${BASH_REMATCH[1]}"
+    REDIS_PASSWORD="${BASH_REMATCH[2]}"
+    REDIS_HOST="${BASH_REMATCH[3]}"
+    REDIS_PORT="${BASH_REMATCH[4]}"
 
-if [[ "$USE_CONNECTION_STRING" =~ ^[Yy]$ ]]; then
-    # Parse connection string
     echo ""
-    echo "Please paste your Redis connection string:"
-    echo "Format: redis://username:password@host:port"
-    echo "Example: redis://default:mypassword@redis-12345.c1.region.ec2.redns.redis-cloud.com:12345"
-    echo ""
-    read -p "Connection string: " REDIS_CONNECTION_STRING
-
-    # Parse the connection string
-    if [[ $REDIS_CONNECTION_STRING =~ redis://([^:]+):([^@]+)@([^:]+):([0-9]+) ]]; then
-        REDIS_USER="${BASH_REMATCH[1]}"
-        REDIS_PASSWORD="${BASH_REMATCH[2]}"
-        REDIS_HOST="${BASH_REMATCH[3]}"
-        REDIS_PORT="${BASH_REMATCH[4]}"
-
-        echo ""
-        echo "Parsed connection details:"
-        echo "   Host: $REDIS_HOST"
-        echo "   Port: $REDIS_PORT"
-        echo "   User: $REDIS_USER"
-        echo "   Password: ********"
-    else
-        echo "Error: Invalid connection string format!"
-        echo "Expected format: redis://username:password@host:port"
-        exit 1
-    fi
+    echo "Parsed connection details:"
+    echo "   Host: $REDIS_HOST"
+    echo "   Port: $REDIS_PORT"
+    echo "   User: $REDIS_USER"
+    echo "   Password: ********"
 else
-    # Individual prompts
-    echo ""
-    echo "Please enter your Redis connection details individually:"
-    read -p "Redis Host (e.g., redis-12345.c1.region.ec2.redns.redis-cloud.com): " REDIS_HOST
-    read -p "Redis Port (e.g., 12345): " REDIS_PORT
-    read -p "Redis Username (default: default): " REDIS_USER
-    REDIS_USER=${REDIS_USER:-default}  # Use 'default' if no input provided
-    read -s -p "Redis Password: " REDIS_PASSWORD
-    echo ""  # Add a newline after password input
+    echo "Error: Invalid connection string format!"
+    echo "Expected format: redis://username:password@host:port"
+    echo "Example: redis://default:mypassword@redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com:17173"
+    exit 1
 fi
 
 # Validate required fields
@@ -60,7 +39,7 @@ if [[ -z "$REDIS_HOST" || -z "$REDIS_PORT" || -z "$REDIS_PASSWORD" ]]; then
     echo "Error: Redis host, port, and password are required!"
     echo ""
     echo "Example Redis Cloud connection string:"
-    echo "   redis://default:password@redis-12345.c1.region.ec2.redns.redis-cloud.com:12345"
+    echo "   redis://default:password@redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com:17173"
     exit 1
 fi
 
