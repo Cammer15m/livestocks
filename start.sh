@@ -1,143 +1,234 @@
 #!/bin/bash
 
-# Redis RDI Training Environment Startup Script
-# Supports both local Redis Enterprise and Redis Cloud
-
-set -e
-
-# ---------------------------------------------------------------------------
-: ${DOMAIN:=localhost}
-[ -z "$PASSWORD" ] && export PASSWORD=redislabs
-
-echo "=========================================="
 echo "Redis RDI Training Environment"
-echo "=========================================="
+echo "=============================="
 echo ""
 
 # Redis Cloud Configuration (Required)
 echo "Redis Cloud Setup (Required):"
 echo "This lab requires a Redis Cloud instance for RDI testing."
 echo "Please provide your Redis Cloud connection details."
-echo "Please provide your Redis Cloud connection string:"
-echo "Format: redis://default:password@host:port"
-echo "You can find this in your Redis Cloud dashboard under 'Connect'"
 echo ""
-read -p "Redis Cloud connection string: " redis_cloud_url
 
-if [[ -z "$redis_cloud_url" ]]; then
+echo "Option 1 - Full connection string (recommended):"
+echo "Format: redis://default:password@host:port"
+echo "Example: redis://default:mypassword@redis-12345.c1.us-east-1-2.ec2.redns.redis-cloud.com:12345"
+echo ""
+echo "Option 2 - Just hostname (we'll ask for password separately):"
+echo "Example: redis-12345.c1.us-east-1-2.ec2.redns.redis-cloud.com"
+echo ""
+read -p "Enter your Redis Cloud connection string or hostname: " redis_input
+
+if [[ -z "$redis_input" ]]; then
     echo "❌ Redis Cloud configuration is required for this lab!"
     exit 1
 fi
 
-echo "Testing Redis Cloud connection..."
-# Parse the connection string
-if [[ "$redis_cloud_url" =~ redis://([^:]+):([^@]+)@([^:]+):([0-9]+) ]]; then
-    export REDIS_CLOUD_USER="${BASH_REMATCH[1]}"
-    export REDIS_CLOUD_PASSWORD="${BASH_REMATCH[2]}"
-    export REDIS_CLOUD_HOST="${BASH_REMATCH[3]}"
-    export REDIS_CLOUD_PORT="${BASH_REMATCH[4]}"
-    export REDIS_CLOUD_URL="$redis_cloud_url"
-
-    echo "✅ Redis Cloud configuration saved"
-    echo "   Host: $REDIS_CLOUD_HOST:$REDIS_CLOUD_PORT"
-    echo "   User: $REDIS_CLOUD_USER"
+# Check if it's a full connection string
+if [[ "$redis_input" =~ redis://([^:]+):([^@]+)@([^:]+):([0-9]+) ]]; then
+    export REDIS_USER="${BASH_REMATCH[1]}"
+    export REDIS_PASSWORD="${BASH_REMATCH[2]}"
+    export REDIS_HOST="${BASH_REMATCH[3]}"
+    export REDIS_PORT="${BASH_REMATCH[4]}"
+    echo "✅ Redis Cloud connection string parsed successfully"
+# Check if it's just a hostname
+elif [[ "$redis_input" =~ ^([^:]+\.redns\.redis-cloud\.com):?([0-9]+)?$ ]]; then
+    export REDIS_HOST="${BASH_REMATCH[1]}"
+    export REDIS_PORT="${BASH_REMATCH[2]:-6379}"
+    read -s -p "Enter your Redis Cloud password: " redis_password
     echo ""
+    if [[ -z "$redis_password" ]]; then
+        echo "❌ Password is required!"
+        exit 1
+    fi
+    export REDIS_USER="default"
+    export REDIS_PASSWORD="$redis_password"
+    echo "✅ Redis Cloud configuration created"
 else
-    echo "❌ Invalid Redis Cloud URL format"
-    echo "Expected format: redis://default:password@host:port"
+    echo "❌ Invalid format. Please provide either:"
+    echo "  - Full connection string: redis://default:password@host:port"
+    echo "  - Redis Cloud hostname: redis-xxxxx.xxx.redns.redis-cloud.com"
     exit 1
 fi
 
-echo "Starting Docker containers..."
+echo "   Host: $REDIS_HOST:$REDIS_PORT"
+echo "   User: $REDIS_USER"
+echo ""
 
-sudo chmod -R 777 grafana/
+# Configure environment with user's Redis Cloud instance
+cat > .env << EOF
+# Redis Cloud Configuration (user provided)
+REDIS_HOST=$REDIS_HOST
+REDIS_PORT=$REDIS_PORT
+REDIS_PASSWORD=$REDIS_PASSWORD
+REDIS_USER=$REDIS_USER
+EOF
 
+# Function to install Docker Desktop automatically on macOS
+install_docker_macos() {
+    echo "Installing Docker Desktop automatically..."
 
-export HOSTNAME=$(hostname -s)
-export PASSWORD=$PASSWORD
-export HOST_IP=$(hostname -I | awk '{print $1}')
+    # Download Docker Desktop
+    echo "Downloading Docker Desktop..."
+    curl -L -o /tmp/Docker.dmg "https://desktop.docker.com/mac/main/universal/Docker.dmg"
 
-export RDI_VERSION=1.10.0
+    # Mount the DMG
+    echo "Mounting Docker installer..."
+    hdiutil attach /tmp/Docker.dmg -quiet
 
-envsubst < ./grafana_config/grafana.ini.template > ./grafana_config/grafana.ini
-envsubst < ./prometheus/prometheus.yml.template > ./prometheus/prometheus.yml
+    # Copy Docker to Applications
+    echo "Installing Docker to Applications..."
+    cp -R "/Volumes/Docker/Docker.app" "/Applications/"
 
-export RE_USER=admin@rl.org
+    # Unmount the DMG
+    hdiutil detach "/Volumes/Docker" -quiet
 
-#Total hack.  There are instances where /snap/bin is not ready before docker-compose leading to error
-#So sleep a little.
+    # Clean up
+    rm /tmp/Docker.dmg
 
-while [ ! -x /snap/bin ]; do
+    echo "Docker Desktop installed successfully!"
+
+    # Add Docker to PATH immediately
+    export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
+
+    # Add to shell profile permanently
+    SHELL_PROFILE=""
+    if [[ -n "$ZSH_VERSION" ]] || [[ "$SHELL" == *"zsh"* ]]; then
+        SHELL_PROFILE="$HOME/.zshrc"
+    elif [[ -n "$BASH_VERSION" ]] || [[ "$SHELL" == *"bash"* ]]; then
+        SHELL_PROFILE="$HOME/.bash_profile"
+    fi
+
+    if [[ -n "$SHELL_PROFILE" ]]; then
+        if ! grep -q "/Applications/Docker.app/Contents/Resources/bin" "$SHELL_PROFILE" 2>/dev/null; then
+            echo 'export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"' >> "$SHELL_PROFILE"
+            echo "Added Docker to $SHELL_PROFILE for future terminal sessions"
+        fi
+    fi
+
+    # Start Docker Desktop
+    echo "Starting Docker Desktop..."
+    open -a Docker
+
+    echo "Waiting for Docker to start (this may take 30-60 seconds)..."
+    sleep 10
+
+    # Wait for Docker daemon to be ready
+    local max_attempts=30
+    local attempt=1
+    while ! docker info &>/dev/null && [ $attempt -le $max_attempts ]; do
+        echo "Waiting for Docker daemon... (attempt $attempt/$max_attempts)"
+        sleep 2
+        ((attempt++))
+    done
+
+    if docker info &>/dev/null; then
+        echo "Docker is now running and ready!"
+    else
+        echo "Docker installation completed but daemon not ready yet."
+        echo "Please wait a moment and run the script again: ./start.sh"
+        exit 0
+    fi
+}
+
+# Check if Docker is installed
+if ! command -v docker &> /dev/null; then
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # Check if Docker Desktop exists but not in PATH
+        if [[ -f "/Applications/Docker.app/Contents/Resources/bin/docker" ]]; then
+            echo "Docker Desktop found but not in PATH. Adding to PATH..."
+            export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
+
+            # Add to shell profile permanently
+            SHELL_PROFILE=""
+            if [[ -n "$ZSH_VERSION" ]] || [[ "$SHELL" == *"zsh"* ]]; then
+                SHELL_PROFILE="$HOME/.zshrc"
+            elif [[ -n "$BASH_VERSION" ]] || [[ "$SHELL" == *"bash"* ]]; then
+                SHELL_PROFILE="$HOME/.bash_profile"
+            fi
+
+            if [[ -n "$SHELL_PROFILE" ]]; then
+                if ! grep -q "/Applications/Docker.app/Contents/Resources/bin" "$SHELL_PROFILE" 2>/dev/null; then
+                    echo 'export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"' >> "$SHELL_PROFILE"
+                    echo "Added Docker to $SHELL_PROFILE for future terminal sessions"
+                fi
+            fi
+        else
+            # Docker not installed, install it automatically
+            install_docker_macos
+        fi
+    else
+        # Linux
+        echo "Detected Linux. Installing Docker..."
+        curl -fsSL https://get.docker.com -o get-docker.sh
+        sudo sh get-docker.sh
+        sudo usermod -aG docker $USER
+        echo "Docker installed. Please log out and log back in, then run this script again."
+        exit 0
+    fi
+fi
+
+# Check if Docker daemon is running
+if ! docker info &> /dev/null; then
+    echo "Docker is installed but not running."
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "On macOS, please:"
+        echo "1. Open Docker Desktop from Applications"
+        echo "2. Wait for it to start completely"
+        echo "3. Then run this script again"
+    else
+        echo "Please start the Docker service:"
+        echo "sudo systemctl start docker"
+    fi
+    exit 1
+fi
+
+# Check if Docker Compose is available
+if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+    echo "Docker Compose is not available. Please install Docker Compose."
+    exit 1
+fi
+
+# Determine Docker Compose command
+if command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE="docker-compose"
+else
+    DOCKER_COMPOSE="docker compose"
+fi
+
+echo "Cleaning up any existing containers..."
+$DOCKER_COMPOSE -f docker-compose-cloud.yml down --remove-orphans
+
+echo "Starting Redis RDI Training Environment..."
+$DOCKER_COMPOSE -f docker-compose-cloud.yml up -d
+
+echo "Waiting for services to start..."
+sleep 10
+
+# Wait for PostgreSQL to be ready
+echo "Waiting for PostgreSQL to be ready..."
+until docker exec rdi-postgres pg_isready -U postgres -d chinook &>/dev/null; do
+    echo "   Still waiting for PostgreSQL..."
     sleep 5
 done
 
-docker-compose up -d --build 
+echo "Checking container status..."
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
-main_nodes=( re-n1 )
-all_nodes=( re-n1 )
-ssh_nodes=( re-n1 )
-
-for i in "${all_nodes[@]}"
-do
-   #wait for admin port
-   docker cp wait-for-code.sh $i:/tmp/wait-for-code.sh
-   docker exec -e URL=https://$i:9443/v1/bootstrap -e CODE=200 $i /bin/bash /tmp/wait-for-code.sh
-
-   #enable port 53
-   docker exec --user root --privileged $i /bin/bash /tmp/init_script.sh
-done
-
-#create cluster 1
-export CLUSTER=re-cluster1.ps-redislabs.org
-export IP=172.16.22.21
-server="re-n1"
-
-cluster_file="redis/create_cluster.json.template"
-
-envsubst < $cluster_file > create_cluster.json
-docker cp create_cluster.json $server:/tmp/create_cluster.json
-docker exec $server curl -k -v --silent --fail -H 'Content-Type: application/json' -d @/tmp/create_cluster.json  https://$server:9443/v1/bootstrap/create_cluster
-
-#wait for admin port
-docker cp wait-for-code.sh $server:/tmp/wait-for-code.sh
-docker exec -e URL=https://$server:9443/v1/bootstrap -e CODE=200 $server /bin/bash /tmp/wait-for-code.sh
-
-
-#update license
-if [[ -n $RE1_LICENSE ]];
-then
-   docker exec re-n1 curl -v -k -d "{\"license\": \"$(echo $RE1_LICENSE | sed -z 's/\n/\\n/g')\"}" -u $RE_USER:$PASSWORD -H "Content-Type: application/json" -X PUT https://localhost:9443/v1/license
-fi
-
-sleep 20
-docker-compose up -d
-sleep 20
-
-#configure Grafana
-cd grafana
-bash config_grafana.sh
-cd ..
-
-
-#export GRAFANA_VERSION=$(docker exec grafana grafana server -v | grep -oP 'Version \K[^\s]+')
-#export RE_VERSION=$(docker exec re-n1 bash -c "curl -u $RE_USER:$PASSWORD https://localhost:9443/v1/nodes -k --fail | jq '.'" | grep software_version | uniq | awk -F ":" '{print $2}' | awk -F '\"' '{print $2}')
-
-#export HOST_IP=$(hostname -I | awk '{print $1}')
-#export REDIS_INSIGHT_VERSION=2.64
-
-
-#create instructions
-#cd about
-#bash create_about.sh
-#cd ..
-
-#nohup npm run dev &
-
-echo '----------------------------------'
-echo "Starting ttyd with labuser on port 7681..."
-
-sudo -u labuser nohup ttyd -W -p 7681 -t disableLeaveAlert=true -t fontSize=14 -t 'cursorStyle=bar' --client-option reconnect=true bash -c "cd /home/labuser && exec bash" &
-
-echo '----------------------------------'
-
-wait $!
+echo ""
+echo "Environment ready!"
+echo ""
+echo "Dashboard: http://localhost:8080"
+echo "Redis Insight: http://localhost:5540 (connect to your Redis: $REDIS_HOST:$REDIS_PORT)"
+echo "SQLPad (PostgreSQL): http://localhost:3001 (admin@rl.org / redislabs)"
+echo ""
+echo "PostgreSQL connection details:"
+echo "   Host: localhost, Port: 5432, User: postgres, Password: postgres, DB: chinook"
+echo ""
+echo "Your Redis Cloud target database:"
+echo "   Host: $REDIS_HOST"
+echo "   Port: $REDIS_PORT"
+echo "   User: $REDIS_USER"
+echo "   Password: $REDIS_PASSWORD"
+echo ""
+echo "To stop: ./stop.sh"

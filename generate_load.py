@@ -4,7 +4,7 @@ import time
 import pandas as pd
 from sqlalchemy import create_engine
 
-DB_HOST = "172.16.22.7"
+DB_HOST = "localhost"
 DB_PORT = 5432
 DB_NAME = "chinook"
 DB_USER = "postgres"
