@@ -6,7 +6,7 @@
 set -e
 
 # ---------------------------------------------------------------------------
-: ${DOMAIN?"Need to set DOMAIN"}
+: ${DOMAIN:=localhost}
 [ -z "$PASSWORD" ] && export PASSWORD=redislabs
 
 echo "=========================================="
@@ -14,41 +14,38 @@ echo "Redis RDI Training Environment"
 echo "=========================================="
 echo ""
 
-# Redis Cloud Configuration
-echo "Redis Cloud Setup (Optional):"
-echo "If you want to use Redis Cloud instead of local Redis Enterprise,"
-echo "please provide your Redis Cloud connection details."
+# Redis Cloud Configuration (Required)
+echo "Redis Cloud Setup (Required):"
+echo "This lab requires a Redis Cloud instance for RDI testing."
+echo "Please provide your Redis Cloud connection details."
+echo "Please provide your Redis Cloud connection string:"
+echo "Format: redis://default:password@host:port"
+echo "You can find this in your Redis Cloud dashboard under 'Connect'"
 echo ""
-read -p "Do you want to configure Redis Cloud? (y/N): " use_redis_cloud
+read -p "Redis Cloud connection string: " redis_cloud_url
 
-if [[ "$use_redis_cloud" =~ ^[Yy]$ ]]; then
+if [[ -z "$redis_cloud_url" ]]; then
+    echo "❌ Redis Cloud configuration is required for this lab!"
+    exit 1
+fi
+
+echo "Testing Redis Cloud connection..."
+# Parse the connection string
+if [[ "$redis_cloud_url" =~ redis://([^:]+):([^@]+)@([^:]+):([0-9]+) ]]; then
+    export REDIS_CLOUD_USER="${BASH_REMATCH[1]}"
+    export REDIS_CLOUD_PASSWORD="${BASH_REMATCH[2]}"
+    export REDIS_CLOUD_HOST="${BASH_REMATCH[3]}"
+    export REDIS_CLOUD_PORT="${BASH_REMATCH[4]}"
+    export REDIS_CLOUD_URL="$redis_cloud_url"
+
+    echo "✅ Redis Cloud configuration saved"
+    echo "   Host: $REDIS_CLOUD_HOST:$REDIS_CLOUD_PORT"
+    echo "   User: $REDIS_CLOUD_USER"
     echo ""
-    echo "Please provide your Redis Cloud connection string:"
-    echo "Format: redis://default:password@host:port"
-    echo "You can find this in your Redis Cloud dashboard under 'Connect'"
-    echo ""
-    read -p "Redis Cloud connection string: " redis_cloud_url
-
-    if [[ -n "$redis_cloud_url" ]]; then
-        echo "Testing Redis Cloud connection..."
-        # Parse the connection string
-        if [[ "$redis_cloud_url" =~ redis://([^:]+):([^@]+)@([^:]+):([0-9]+) ]]; then
-            export REDIS_CLOUD_USER="${BASH_REMATCH[1]}"
-            export REDIS_CLOUD_PASSWORD="${BASH_REMATCH[2]}"
-            export REDIS_CLOUD_HOST="${BASH_REMATCH[3]}"
-            export REDIS_CLOUD_PORT="${BASH_REMATCH[4]}"
-            export REDIS_CLOUD_URL="$redis_cloud_url"
-
-            echo "✅ Redis Cloud configuration saved"
-            echo "   Host: $REDIS_CLOUD_HOST:$REDIS_CLOUD_PORT"
-            echo "   User: $REDIS_CLOUD_USER"
-            echo ""
-        else
-            echo "❌ Invalid Redis Cloud URL format"
-            echo "Expected format: redis://default:password@host:port"
-            exit 1
-        fi
-    fi
+else
+    echo "❌ Invalid Redis Cloud URL format"
+    echo "Expected format: redis://default:password@host:port"
+    exit 1
 fi
 
 echo "Starting Docker containers..."
