@@ -2,6 +2,7 @@ services:
   # PostgreSQL source database with Debezium support
   postgresql:
     image: 'postgres:15.3-bullseye'
+    platform: linux/amd64
     container_name: rdi-postgres
     ports:
       - '5432:5432'
@@ -33,6 +34,7 @@ services:
   # SQLPad for PostgreSQL queries
   sqlpad:
     image: 'sqlpad/sqlpad:6'
+    platform: linux/amd64
     container_name: rdi-sqlpad
     ports:
       - '3001:3000'
