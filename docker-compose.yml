@@ -1,24 +1,24 @@
 version: '2'
 services:
-  grafana:
-    image: grafana/grafana
-    container_name: grafana
-    environment:
-      - GF_INSTALL_PLUGINS=redis-app,redis-datasource,grafana-clock-panel,grafana-simple-json-datasource
-      - GF_SECURITY_ADMIN_PASSWORD=${PASSWORD}
-    volumes:
-      - './grafana:/var/lib/grafana'
-      - './grafana_config/grafana.ini:/etc/grafana/grafana.ini'  
-    ports:
-      - '3000:3000'        
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    networks:
-      default:
-        ipv4_address: 172.16.22.10
+  # grafana:
+  #   image: grafana/grafana
+  #   container_name: grafana
+  #   environment:
+  #     - GF_INSTALL_PLUGINS=redis-app,redis-datasource,grafana-clock-panel,grafana-simple-json-datasource
+  #     - GF_SECURITY_ADMIN_PASSWORD=${PASSWORD}
+  #   volumes:
+  #     - './grafana:/var/lib/grafana'
+  #     - './grafana_config/grafana.ini:/etc/grafana/grafana.ini'
+  #   ports:
+  #     - '3000:3000'
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:3000"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+  #   networks:
+  #     default:
+  #       ipv4_address: 172.16.22.10
   docs:
     image: httpd:2.4.63
     container_name: docs
