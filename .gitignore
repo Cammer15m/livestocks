@@ -4,8 +4,8 @@ node_modules
 .vs
 csharp.sln.DotSettings.user
 
-rdi-training/grafana/tmp*
-rdi-training/rdi_install
+# RDI Training Reference - Keep local, don't commit
+rdi-training/
 
 code/**/.settings
 code/**/target
@@ -20,6 +20,8 @@ builddir
 Session.vim
 *redis-di
 *redis-di.tgz
+rdi-installation-*.tar.gz
+rdi_install/
 *redisgears-jvm.tgz
 *redisgears-python.tgz
 *create_cluster.json

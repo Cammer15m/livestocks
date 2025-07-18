@@ -1,14 +1,15 @@
 import random
 import time
+import os
 
 import pandas as pd
 from sqlalchemy import create_engine
 
-DB_HOST = "172.16.22.7"
-DB_PORT = 5432
-DB_NAME = "chinook"
-DB_USER = "postgres"
-DB_PASSWORD = "postgres"
+DB_HOST = os.getenv("POSTGRES_HOST", "postgresql")
+DB_PORT = int(os.getenv("POSTGRES_PORT", "5432"))
+DB_NAME = os.getenv("POSTGRES_DB", "chinook")
+DB_USER = os.getenv("POSTGRES_USER", "postgres")
+DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgres")
 
 
 def main():

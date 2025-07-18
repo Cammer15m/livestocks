@@ -2,8 +2,8 @@ services:
   # PostgreSQL source database with Debezium support
   postgresql:
     image: 'postgres:15.3-bullseye'
-    platform: linux/amd64
     container_name: rdi-postgres
+    user: postgres
     ports:
       - '5432:5432'
     environment:
@@ -13,7 +13,7 @@ services:
     volumes:
       - './create_track_table.sql:/docker-entrypoint-initdb.d/01-create_track_table.sql'
       - './init-postgres-for-debezium.sql:/docker-entrypoint-initdb.d/02-init-postgres-for-debezium.sql'
-      - './postgresql.conf:/etc/postgresql/postgresql.conf'
+      - './postgresql.conf:/etc/postgresql/postgresql.conf:ro'
     command: ['postgres', '-c', 'config_file=/etc/postgresql/postgresql.conf']
     restart: unless-stopped
     healthcheck:
@@ -31,10 +31,11 @@ services:
     volumes:
       - redis-insight-data:/data
 
+# RDI removed - users will use shared/common RDI instance
+
   # SQLPad for PostgreSQL queries
   sqlpad:
     image: 'sqlpad/sqlpad:6'
-    platform: linux/amd64
     container_name: rdi-sqlpad
     ports:
       - '3001:3000'
@@ -62,6 +63,10 @@ services:
     volumes:
       - './web:/usr/share/nginx/html'
     restart: unless-stopped
+
+
+
+
 
 volumes:
   redis-insight-data:

@@ -4,55 +4,51 @@ echo "Redis RDI Training Environment"
 echo "=============================="
 echo ""
 
-# Redis Cloud Configuration (Required)
-echo "Redis Cloud Setup (Required):"
-echo "This lab requires a Redis Cloud instance for RDI testing."
-echo "Please provide your Redis Cloud connection details."
+# Gather Redis Cloud connection details from user
+echo "Redis Cloud Configuration"
+echo "Please paste your Redis Cloud connection string:"
+echo "This Redis instance will be used as the target database."
 echo ""
-
-echo "Option 1 - Full connection string (recommended):"
-echo "Format: redis://default:password@host:port"
-echo "Example: redis://default:mypassword@redis-12345.c1.us-east-1-2.ec2.redns.redis-cloud.com:12345"
+echo "Format: redis://username:password@host:port"
+echo "Example: redis://default:mypassword@redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com:17173"
 echo ""
-echo "Option 2 - Just hostname (we'll ask for password separately):"
-echo "Example: redis-12345.c1.us-east-1-2.ec2.redns.redis-cloud.com"
-echo ""
-read -p "Enter your Redis Cloud connection string or hostname: " redis_input
+read -p "Redis connection string: " REDIS_CONNECTION_STRING
 
-if [[ -z "$redis_input" ]]; then
-    echo "❌ Redis Cloud configuration is required for this lab!"
-    exit 1
-fi
+# Parse the connection string
+if [[ $REDIS_CONNECTION_STRING =~ redis://([^:]+):([^@]+)@([^:]+):([0-9]+) ]]; then
+    REDIS_USER="${BASH_REMATCH[1]}"
+    REDIS_PASSWORD="${BASH_REMATCH[2]}"
+    REDIS_HOST="${BASH_REMATCH[3]}"
+    REDIS_PORT="${BASH_REMATCH[4]}"
 
-# Check if it's a full connection string
-if [[ "$redis_input" =~ redis://([^:]+):([^@]+)@([^:]+):([0-9]+) ]]; then
-    export REDIS_USER="${BASH_REMATCH[1]}"
-    export REDIS_PASSWORD="${BASH_REMATCH[2]}"
-    export REDIS_HOST="${BASH_REMATCH[3]}"
-    export REDIS_PORT="${BASH_REMATCH[4]}"
-    echo "✅ Redis Cloud connection string parsed successfully"
-# Check if it's just a hostname
-elif [[ "$redis_input" =~ ^([^:]+\.redns\.redis-cloud\.com):?([0-9]+)?$ ]]; then
-    export REDIS_HOST="${BASH_REMATCH[1]}"
-    export REDIS_PORT="${BASH_REMATCH[2]:-6379}"
-    read -s -p "Enter your Redis Cloud password: " redis_password
     echo ""
-    if [[ -z "$redis_password" ]]; then
-        echo "❌ Password is required!"
-        exit 1
-    fi
-    export REDIS_USER="default"
-    export REDIS_PASSWORD="$redis_password"
-    echo "✅ Redis Cloud configuration created"
+    echo "Parsed connection details:"
+    echo "   Host: $REDIS_HOST"
+    echo "   Port: $REDIS_PORT"
+    echo "   User: $REDIS_USER"
+    echo "   Password: ********"
 else
-    echo "❌ Invalid format. Please provide either:"
-    echo "  - Full connection string: redis://default:password@host:port"
-    echo "  - Redis Cloud hostname: redis-xxxxx.xxx.redns.redis-cloud.com"
+    echo "Error: Invalid connection string format!"
+    echo "Expected format: redis://username:password@host:port"
+    echo "Example: redis://default:mypassword@redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com:17173"
     exit 1
 fi
 
-echo "   Host: $REDIS_HOST:$REDIS_PORT"
+# Validate required fields
+if [[ -z "$REDIS_HOST" || -z "$REDIS_PORT" || -z "$REDIS_PASSWORD" ]]; then
+    echo "Error: Redis host, port, and password are required!"
+    echo ""
+    echo "Example Redis Cloud connection string:"
+    echo "   redis://default:password@redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com:17173"
+    exit 1
+fi
+
+echo ""
+echo "Redis Cloud configuration:"
+echo "   Host: $REDIS_HOST"
+echo "   Port: $REDIS_PORT"
 echo "   User: $REDIS_USER"
+echo "   Password: ********"
 echo ""
 
 # Configure environment with user's Redis Cloud instance
@@ -172,15 +168,33 @@ fi
 if ! docker info &> /dev/null; then
     echo "Docker is installed but not running."
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        echo "On macOS, please:"
-        echo "1. Open Docker Desktop from Applications"
-        echo "2. Wait for it to start completely"
-        echo "3. Then run this script again"
+        echo "Starting Docker Desktop automatically..."
+        open -a Docker
+
+        echo "Waiting for Docker to start (this may take 30-60 seconds)..."
+        sleep 10
+
+        # Wait for Docker daemon to be ready
+        local max_attempts=30
+        local attempt=1
+        while ! docker info &>/dev/null && [ $attempt -le $max_attempts ]; do
+            echo "Waiting for Docker daemon... (attempt $attempt/$max_attempts)"
+            sleep 2
+            ((attempt++))
+        done
+
+        if docker info &>/dev/null; then
+            echo "Docker is now running and ready!"
+        else
+            echo "Docker Desktop is starting but not ready yet."
+            echo "Please wait a moment and run the script again: ./start.sh"
+            exit 0
+        fi
     else
         echo "Please start the Docker service:"
         echo "sudo systemctl start docker"
+        exit 1
     fi
-    exit 1
 fi
 
 # Check if Docker Compose is available
@@ -229,6 +243,6 @@ echo "Your Redis Cloud target database:"
 echo "   Host: $REDIS_HOST"
 echo "   Port: $REDIS_PORT"
 echo "   User: $REDIS_USER"
-echo "   Password: $REDIS_PASSWORD"
+echo "   Password: ********"
 echo ""
 echo "To stop: ./stop.sh"

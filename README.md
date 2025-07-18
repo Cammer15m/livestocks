@@ -1,14 +1,15 @@
-# Redis RDI Training Environment
+# Redis Training Environment
 
-A complete Redis Data Integration (RDI) training environment using Docker containers. This setup provides hands-on experience with Redis Enterprise, PostgreSQL, and real-time data integration pipelines.
+A complete Redis training environment using Docker containers. This setup provides hands-on experience with PostgreSQL source database, Redis Cloud target database, and data monitoring tools.
 
 ## Quick Start
 
 ### Prerequisites
 - Docker and Docker Compose
 - Git
-- 4GB+ RAM recommended
-- 10GB+ free disk space
+- 2GB+ RAM recommended
+- 5GB+ free disk space
+- Redis Cloud instance (provided by instructor)
 
 ### Setup
 
@@ -20,559 +21,231 @@ A complete Redis Data Integration (RDI) training environment using Docker contai
 
 2. **Start the environment:**
    ```bash
-   DOMAIN=localhost ./start.sh
+   ./start.sh
+   # You'll be prompted for your Redis Cloud connection details
    ```
 
 3. **Access the services:**
-   - **Redis Enterprise UI**: http://localhost:8443
+   - **Dashboard**: http://localhost:8080
    - **Redis Insight**: http://localhost:5540
-   - **Grafana**: http://localhost:3000
-   - **PostgreSQL**: localhost:5432
-   - **Prometheus**: http://localhost:9090
-   - **SQLPad**: http://localhost:3001
-   - **Docker Logs**: http://localhost:8080
+   - **SQLPad (PostgreSQL)**: http://localhost:3001
 
 ## Default Credentials
 
 | Service | Username | Password | Notes |
 |---------|----------|----------|-------|
-| **Redis Enterprise** | admin@rl.org | redislabs | Main Redis cluster management |
-| **Grafana** | admin | redislabs | Monitoring dashboards |
 | **PostgreSQL** | postgres | postgres | Source database |
-| **SQLPad** | admin@rl.org | redislabs | Database query interface |
+| **SQLPad** | admin@rl.org | redislabs | PostgreSQL web interface |
+| **Redis Cloud** | your-username | your-password | Target database (your instance) |
 
-## Redis Cloud Integration
+## Services Overview
 
-This environment supports both local Redis Enterprise and Redis Cloud:
+### PostgreSQL Database
+- **Purpose**: Source database with sample music store data
+- **Access**: http://localhost:3001 (SQLPad web interface)
+- **Direct Access**: `docker exec -it rdi-postgres psql -U postgres -d chinook`
+- **Tables**: Album, Artist, Track, Genre, MediaType, etc.
 
-### Option 1: Redis Cloud (Recommended for Production)
+### Redis Insight
+- **Purpose**: Redis database monitoring and management
+- **Access**: http://localhost:5540
+- **Connect to**: Your Redis Cloud instance (configured during startup)
 
-1. **Create Redis Cloud Account:**
-   - Sign up at https://redis.io/try-free/
-   - Create a new database
-   - Note your connection details
+### SQLPad
+- **Purpose**: Web-based PostgreSQL query interface
+- **Access**: http://localhost:3001
+- **Login**: admin@rl.org / redislabs
+- **Pre-configured**: Connected to PostgreSQL chinook database
 
-2. **Get Connection String:**
-   - In Redis Cloud dashboard, click your database
-   - Click "Connect" → "Redis CLI"
-   - Copy the connection string: `redis://default:xxxxx@redis-xxxxx.cxx.region.ec2.redns.redis-cloud.com:port`
+### Web Dashboard
+- **Purpose**: Training instructions and lab exercises
+- **Access**: http://localhost:8080
 
-3. **Start with Redis Cloud:**
-   ```bash
-   DOMAIN=localhost ./start.sh
-   # When prompted, choose 'y' for Redis Cloud
-   # Paste your connection string when asked
-   ```
+## Common Tasks
 
-### Option 2: Local Redis Enterprise
+### View PostgreSQL Data
 ```bash
-DOMAIN=localhost ./start.sh
-# When prompted, choose 'n' for local Redis Enterprise
+# Access PostgreSQL via SQLPad web interface
+open http://localhost:3001
+
+# Or use command line
+docker exec -it rdi-postgres psql -U postgres -d chinook
+\dt  # List tables
+SELECT * FROM "Track" LIMIT 10;
 ```
 
-## Using Redis Insight with Redis Cloud
+### Monitor Redis Cloud
+```bash
+# Access Redis Insight
+open http://localhost:5540
 
-1. **Access Redis Insight:** http://localhost:5540
-2. **Add Redis Cloud Connection:**
-   - Click "Add Redis Database"
-   - Choose "Connect to a Redis Database"
-   - Enter your Redis Cloud connection details:
-     - **Host:** redis-xxxxx.cxx.region.ec2.redns.redis-cloud.com
-     - **Port:** Your port number
-     - **Username:** default (or your username)
-     - **Password:** Your Redis Cloud password
-3. **Connect and Explore:** Browse your Redis Cloud data through the web interface
+# Add your Redis Cloud connection:
+# Host: your-redis-host.redns.redis-cloud.com
+# Port: your-port
+# Username: your-username
+# Password: your-password
+```
 
-## RDI Configuration
+### Generate Test Data
 
-### Configure RDI with Redis Cloud
+**Continuous Load Generation:**
+```bash
+# Start continuous load generation (recommended)
+./generate_load.sh
+```
 
-1. **Access the RDI container:**
-   ```bash
-   docker exec -it loadgen bash
-   ```
-
-2. **Configure RDI to use Redis Cloud:**
-   ```bash
-   # Set up RDI configuration
-   redis-di configure --rdi-host localhost:13000 --rdi-password redislabs
-
-   # Configure target Redis (your Redis Cloud instance)
-   redis-di config set target.host your-redis-cloud-host
-   redis-di config set target.port your-redis-cloud-port
-   redis-di config set target.password your-redis-cloud-password
-   redis-di config set target.user default
-   ```
-
-3. **Create and deploy data pipeline:**
-   ```bash
-   # Create pipeline configuration
-   redis-di create-pipeline --name postgres-to-redis
-
-   # Deploy the pipeline
-   redis-di deploy
-
-   # Start data integration
-   redis-di start
-   ```
-
-4. **Monitor data flow:**
-   - Use Redis Insight to see data flowing into Redis Cloud
-   - Check Grafana dashboards for pipeline metrics
-   - View PostgreSQL source data in SQLPad
+**Manual Single Record:**
+```bash
+# Insert a single test record
+docker exec -it rdi-postgres psql -U postgres -d chinook -c "
+INSERT INTO \"Track\" (\"Name\", \"AlbumId\", \"MediaTypeId\", \"GenreId\", \"Milliseconds\", \"Bytes\", \"UnitPrice\")
+VALUES ('Test Metal Track', 1, 1, 2, 180000, 5000000, 0.99);
+"
+```
 
 ## Management Commands
 
+### Start/Stop Environment
 ```bash
-# Start environment
-DOMAIN=localhost ./start.sh
+# Start all services
+./start.sh
 
 # Stop all services
 ./stop.sh
 
+# View service status
+docker ps
+
 # View logs
 docker-compose logs -f [service-name]
-
-# Access RDI CLI
-docker exec -it loadgen bash
-
-# Check service status
-docker-compose ps
-
-# Reset environment
-docker-compose down -v && DOMAIN=localhost ./start.sh
 ```
 
-### **🔧 Configure RDI**
+### Container Access
 ```bash
-# 1. Access the RDI container
-docker exec -it rdi bash
+# Access PostgreSQL container
+docker exec -it rdi-postgres bash
 
-# 2. Configure RDI with your Redis Cloud connection
-redis-di configure --rdi-host localhost:13000 --rdi-password <password>
+# Check PostgreSQL status
+docker exec rdi-postgres pg_isready -U postgres
 
-# 3. Set up data pipeline
-redis-di create-pipeline --name postgres-pipeline
-
-# 4. Deploy and start pipeline
-redis-di deploy
-redis-di start
+# View PostgreSQL configuration
+docker exec rdi-postgres cat /etc/postgresql/postgresql.conf | grep -E "(wal_level|max_replication_slots)"
 ```
 
-### **🧪 Testing & Monitoring**
-```bash
-# Check RDI status
-docker exec -it rdi redis-di status
-
-# View RDI logs
-docker exec -it rdi redis-di logs
-
-# Access PostgreSQL for testing
-docker exec -it postgres psql -U postgres -d postgres
-
-# Monitor with Redis Insight
-# Visit: http://localhost:8443
-```
-
-### **⚠️ Important: Clean Start**
-If you encounter issues, ensure clean startup:
-```bash
-# Stop all containers
-./stop.sh
-
-# Clean up
-docker system prune -f
-
-# Start fresh
-export DOMAIN=localhost
-./start.sh
-```
-
-## 🛑 Stopping the Environment
-
-```bash
-# Stop all containers safely
-./stop.sh
-
-# Or manually
-docker-compose down
-
-# Remove all data
-docker-compose down -v
-```
-
-## 🎮 Architecture
-
-### **Multi-Container Setup:**
-- 🗄️ **PostgreSQL Container**: Music store database with sample data
-- 🔍 **Redis Insight Container**: RDI configuration and monitoring (optional)
-- ⚙️ **RDI CLI Container**: Redis Data Integration management
-- 📊 **Load Generator Container**: Test data generation
-- 🌐 **Web Interface Container**: CTF instructions and dashboard
-
-### **Redis Insight Options:**
-
-**Option 1: Containerized Redis Insight (Default)**
-- ✅ Runs in Docker container
-- ✅ Accessible at `http://localhost:5540`
-- ✅ Easier setup, no additional downloads
-- ✅ Automatically configured
-
-**Option 2: External Redis Insight**
-- 🔗 Download from [redis.io/downloads](https://redis.io/downloads/#Redis_Insight)
-- 🖥️ Professional desktop application
-- ⚡ Better performance and more features
-- 🔧 Use `./configure_external_insight.sh` for connection details
-- 📱 Available for Windows, macOS, and Linux
-
-### **External Requirements:**
-- 🔗 **Redis Cloud**: Your target Redis database (free account)
-
-## 🚀 Getting Started
-
-### **1. Prerequisites Setup**
-```bash
-# Sign up for Redis Cloud (free)
-# Visit: https://redis.com/try-free/
-# Create a database and get connection details
-```
-
-### **2. Start the Environment**
-```bash
-./start_ctf.sh
-```
-
-### **3. Configure RDI**
-```bash
-# Copy and edit RDI configuration
-docker exec -it rdi-ctf-cli cp /config/config.yaml.template /config/config.yaml
-docker exec -it rdi-ctf-cli nano /config/config.yaml
-
-# Update with your Redis Cloud details:
-# host: your-redis-host.redns.redis-cloud.com
-# port: your-port
-# password: your-password
-```
-
-### **4. Deploy and Start RDI**
-```bash
-# Deploy configuration
-docker exec -it rdi-ctf-cli redis-di deploy --config /config/config.yaml
-
-# Start the pipeline
-docker exec -it rdi-ctf-cli redis-di start
-
-# Check status
-docker exec -it rdi-ctf-cli redis-di status
-```
-
-### **5. Begin Labs**
-- **Web Dashboard**: http://localhost:8080
-- **Redis Insight**: http://localhost:5540
-- **Follow lab instructions** in the web interface
-
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   PostgreSQL    │───▶│   Redis RDI     │───▶│   Redis Cloud   │
-│   Container     │    │   Container     │    │   (Your DB)     │
-│  (musicstore)   │    │   (CLI/Mgmt)    │    │                 │
+│   PostgreSQL    │    │   Redis Cloud   │    │   Monitoring    │
+│   Container     │    │   (Your DB)     │    │   Tools         │
+│  (chinook db)   │    │                 │    │                 │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                        ▲
-         │                       │                        │
-         ▼                       ▼                        │
-┌─────────────────┐    ┌─────────────────┐                │
-│  Load Generator │    │  Redis Insight  │────────────────┘
-│   Container     │    │   Container     │
-│  (Test Data)    │    │ (Configuration) │
-└─────────────────┘    └─────────────────┘
-         │                       │
-         ▼                       ▼
-┌─────────────────────────────────────────┐
-│           Web Interface                 │
-│          (Instructions)                 │
-└─────────────────────────────────────────┘
+         │                        ▲                        │
+         │                        │                        │
+         ▼                        │                        ▼
+┌─────────────────┐              │              ┌─────────────────┐
+│    SQLPad       │              │              │   Redis Insight │
+│  (Web Query)    │              │              │  (Redis Mgmt)   │
+│  localhost:3001 │              │              │  localhost:5540 │
+└─────────────────┘              │              └─────────────────┘
+                                 │
+                        ┌─────────────────┐
+                        │   Web Dashboard │
+                        │  (Instructions) │
+                        │  localhost:8080 │
+                        └─────────────────┘
 ```
 
 **Components:**
-- **🗄️ PostgreSQL**: Source database with music store data
-- **⚙️ RDI CLI**: Real Redis RDI for data integration
-- **🔍 Redis Insight**: Configuration and monitoring interface
-- **📊 Load Generator**: Creates test data for CDC
-- **🌐 Web Interface**: CTF instructions and dashboard
-- **☁️ Redis Cloud**: Your target Redis database
+- **PostgreSQL**: Source database with music store data
+- **Redis Cloud**: Your target Redis database (external)
+- **Redis Insight**: Redis monitoring and management interface
+- **SQLPad**: Web-based PostgreSQL query interface
+- **Web Dashboard**: Training instructions and lab exercises
 
-## 📚 Lab Overview
+## Troubleshooting
 
-| Lab | Topic | Difficulty | Estimated Time |
-|-----|-------|------------|----------------|
-| **01** | PostgreSQL → Redis (Snapshot) | 🟢 Beginner | 20 minutes |
-| **02** | Change Data Capture (CDC) | 🟡 Intermediate | 30 minutes |
-| **03** | Advanced Transformations | 🟠 Advanced | 25 minutes |
-
-## 🧪 Testing & Validation
-
-### **Quick Validation**
+### Container Issues
 ```bash
-# Validate setup without Docker
-./validate_setup.sh
+# Check container status
+docker ps -a
+
+# View container logs
+docker logs rdi-postgres
+docker logs rdi-insight
+docker logs rdi-sqlpad
+
+# Restart services
+./stop.sh && ./start.sh
+
+# Quick diagnostic
+./diagnose.sh
 ```
 
-### **Full Integration Test**
+### PostgreSQL Issues
 ```bash
-# Complete test with Docker (requires Docker installed)
-./integration_test.sh
+# Check PostgreSQL status
+docker exec rdi-postgres pg_isready -U postgres
+
+# Access PostgreSQL directly
+docker exec -it rdi-postgres psql -U postgres -d chinook
+
+# View PostgreSQL logs
+docker logs rdi-postgres
+
+# Check configuration
+docker exec rdi-postgres cat /etc/postgresql/postgresql.conf | grep -E "(wal_level|max_replication_slots|max_wal_senders)"
 ```
 
-## 🎮 CTF Flags
-
-Each lab contains a hidden flag. Collect all flags to complete the challenge:
-
+### Port Conflicts
 ```bash
-# Check your progress
-cd scripts
-python3 check_flags.py
+# Check if ports are in use
+netstat -tulpn | grep -E "(5432|5540|3001|3000|8080)"
+
+# Kill processes using ports (if needed)
+sudo lsof -ti:5432 | xargs kill -9
 ```
 
-**Expected Flags:**
-- `flag:01` → `RDI{pg_to_redis_success}`
-- `flag:02` → `RDI{snapshot_vs_cdc_detected}`
-- `flag:03` → `RDI{advanced_features_mastered}`
-
-## 🛠️ Services & Access
-
-| Service | Access Method | Purpose |
-|---------|---------------|---------|
-| **Web Monitor** | http://localhost:8080 | Main CTF interface |
-| **PostgreSQL** | Container shell | Source database |
-| **Redis** | External (your choice) | Target database |
-
-### **Container Access Methods:**
+### Redis Cloud Connection
 ```bash
-# Main web interface (external)
-open http://localhost:8080
-
-# Database access (container shell)
-docker exec -it redis-rdi-ctf psql -U rdi_user -d rdi_db
-
-# Run CTF scripts (container shell)
-docker exec -it redis-rdi-ctf bash
-cd scripts && python3 rdi_connector.py
+# Test Redis connection (replace with your details)
+redis-cli -h your-redis-host.redns.redis-cloud.com -p your-port -a your-password ping
 ```
 
-## 🧹 Cleanup
+## Directory Structure
 
-### **Stop Everything**
-```bash
-docker-compose down
+```
+Redis_RDI_CTF/
+├── README.md                          # This file
+├── start.sh                           # Environment startup script
+├── stop.sh                            # Environment shutdown script
+├── generate_load.sh                   # PostgreSQL load generation script
+├── docker-compose-cloud.yml           # Main Docker configuration
+├── postgresql.conf                    # PostgreSQL configuration
+├── create_track_table.sql             # Database initialization
+├── init-postgres-for-debezium.sql     # PostgreSQL setup for CDC
+├── generate_load.py                   # Load generation Python script
+├── requirements.txt                   # Python dependencies for load generation
+├── track.csv                          # Sample track data for load generation
+└── web/                               # Web dashboard files
 ```
 
-### **Complete Removal**
+## Cleanup
+
+### Stop Everything
+```bash
+./stop.sh
+```
+
+### Complete Removal
 ```bash
 # Remove containers and volumes
-docker-compose down -v
-
-# Remove images
-docker rmi redis-rdi-ctf_redis-rdi-ctf
+docker-compose -f docker-compose-cloud.yml down -v
 
 # Remove project directory
 cd .. && rm -rf Redis_RDI_CTF
 ```
 
-## 📁 Directory Structure
+## License
 
-```
-Redis_RDI_CTF/
-├── 📖 README.md                 # This file
-├── 🐳 Dockerfile                # Container definition
-├── 🐳 docker-compose.yml        # Service orchestration
-├── ⚙️  .env                     # Environment configuration
-├── 🧪 labs/                     # Hands-on exercises
-│   ├── 01_postgres_to_redis/    # Lab 1: Basic integration
-│   ├── 02_snapshot_vs_cdc/      # Lab 2: Replication modes
-│   └── 03_advanced_rdi/         # Lab 3: Advanced features
-├── 🔧 scripts/                  # Utility scripts
-│   ├── check_flags.py           # Progress checker
-│   ├── rdi_connector.py         # Main RDI simulation
-│   └── rdi_web.py               # Web monitoring interface
-├── 🌱 seed/                     # Sample data
-│   └── music_database.sql       # Chinook database
-├── 🐳 docker/                   # Container support files
-└── 📚 docs/                     # Documentation
-```
-
-## 🔧 Troubleshooting
-
-### **Container Won't Start**
-```bash
-# Use the smart startup script (recommended)
-./start_ctf.sh
-
-# If that fails, check logs manually
-docker logs redis-rdi-ctf
-
-# Rebuild container
-docker-compose up --build --force-recreate
-```
-
-### **Startup Script Issues**
-```bash
-# Make sure script is executable
-chmod +x start_ctf.sh
-
-# Run with verbose output
-bash -x start_ctf.sh
-
-# Manual startup if script fails
-docker-compose up -d --build
-docker logs -f redis-rdi-ctf
-```
-
-### **Can't Connect to Redis**
-```bash
-# Check .env configuration
-cat .env
-
-# Test Redis connection from container
-docker exec redis-rdi-ctf python3 -c "import redis; r=redis.from_url('your-redis-url'); print(r.ping())"
-```
-
-### **PostgreSQL Issues**
-```bash
-# Check PostgreSQL status
-docker exec redis-rdi-ctf pg_isready -U rdi_user -d rdi_db
-
-# Access PostgreSQL directly
-docker exec -it redis-rdi-ctf psql -U rdi_user -d rdi_db
-
-# View PostgreSQL logs
-docker exec redis-rdi-ctf tail -f /var/log/postgresql.log
-```
-
-### **Port Conflicts**
-```bash
-# Check if port 8080 is in use
-netstat -an | grep 8080
-
-# Use different port if needed
-docker compose up -p 18080:8080
-```
-
-## 🐳 Container Access Guide
-
-### **Everything Runs Inside the Container**
-The CTF is designed to be completely self-contained. All services run inside Docker:
-
-```bash
-# Main interface (external access)
-open http://localhost:8080
-
-# Database queries (inside container)
-docker exec -it redis-rdi-ctf psql -U rdi_user -d rdi_db -c "SELECT COUNT(*) FROM \"Track\";"
-
-# Interactive database session
-docker exec -it redis-rdi-ctf psql -U rdi_user -d rdi_db
-
-# Run CTF scripts
-docker exec -it redis-rdi-ctf bash
-cd scripts
-python3 rdi_connector.py
-
-# Check flags
-docker exec -it redis-rdi-ctf python3 scripts/check_flags.py
-```
-
-### **Why Single Port Design?**
-- ✅ **Simpler setup** - Only one port to remember
-- ✅ **More secure** - No database exposed to host
-- ✅ **Fewer conflicts** - Less chance of port collisions
-- ✅ **Container-native** - Everything accessible via `docker exec`
-
-## 💡 Advanced Setup (Local Installation)
-
-For advanced users who prefer local installation, see [docs/LEGACY_SETUP.md](docs/LEGACY_SETUP.md).
-
-**⚠️ Warning**: Local installation modifies your system and requires manual cleanup.
-
-## 🎓 Learning Resources
-
-- [Redis Data Integration Documentation](https://redis.io/docs/data-integration/)
-- [Redis Streams Guide](https://redis.io/docs/data-types/streams/)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
-- [RedisInsight Documentation](https://redis.com/redis-enterprise/redis-insight/)
-
-## 🤝 Contributing
-
-Found an issue or want to improve the labs? Contributions welcome!
-
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
-
-## 🚀 Quick Reference
-
-```bash
-# Start CTF environment
-./start_ctf.sh
-
-# Stop CTF environment
-./stop_ctf.sh
-
-# Validate setup
-./validate_setup.sh
-
-# Full integration test
-./integration_test.sh
-```
-
-## 🐳 Container Access
-
-```bash
-# Access PostgreSQL database
-docker exec -it rdi-ctf-postgres psql -U postgres -d musicstore
-
-# Access RDI CLI for pipeline management
-docker exec -it rdi-ctf-cli bash
-docker exec -it rdi-ctf-cli redis-di status
-
-# Run load generator for testing
-docker exec -it rdi-ctf-loadgen python /scripts/generate_load.py
-
-# View container logs
-docker logs rdi-ctf-postgres
-docker logs rdi-ctf-cli
-docker logs rdi-ctf-insight
-docker logs rdi-ctf-web
-
-# Check all CTF containers
-docker ps | grep rdi-ctf
-```
-
-## 🎯 What's New in This Version
-
-This Redis RDI CTF has been completely refactored to provide a **professional, production-like experience**:
-
-### **✨ Key Improvements**
-- **🏗️ Multi-Container Architecture**: Separate containers for each service (PostgreSQL, RDI CLI, Redis Insight, Load Generator, Web Interface)
-- **⚙️ Real Redis RDI**: Uses actual Redis RDI CLI instead of simulation
-- **🔍 Redis Insight Integration**: Professional RDI configuration and monitoring interface
-- **📊 Advanced Load Generation**: Realistic data generation for CDC testing
-- **🌐 Enhanced Web Interface**: Comprehensive instructions and dashboard
-- **🧪 Comprehensive Testing**: Validation and integration test scripts
-
-### **🎓 Learning Benefits**
-- **Real-world Skills**: Learn actual Redis RDI, not just concepts
-- **Professional Tools**: Use the same tools used in production environments
-- **Hands-on Experience**: Configure real data pipelines with Redis Cloud
-- **Best Practices**: Follow industry-standard deployment patterns
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
----
-
-**Happy Learning! 🎉**
-
-*Ready to become a Redis Data Integration expert? Start with Lab 1 and work your way through the challenges!*
+This project is licensed under the MIT License.
