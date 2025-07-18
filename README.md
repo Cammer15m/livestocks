@@ -87,11 +87,19 @@ open http://localhost:5540
 ```
 
 ### Generate Test Data
+
+**Continuous Load Generation:**
 ```bash
-# Run data generation scripts
+# Start continuous load generation (recommended)
+./generate_load.sh
+```
+
+**Manual Single Record:**
+```bash
+# Insert a single test record
 docker exec -it rdi-postgres psql -U postgres -d chinook -c "
-INSERT INTO \"Track\" (\"Name\", \"AlbumId\", \"MediaTypeId\", \"GenreId\", \"Milliseconds\", \"Bytes\", \"UnitPrice\") 
-VALUES ('Test Track', 1, 1, 1, 180000, 5000000, 0.99);
+INSERT INTO \"Track\" (\"Name\", \"AlbumId\", \"MediaTypeId\", \"GenreId\", \"Milliseconds\", \"Bytes\", \"UnitPrice\")
+VALUES ('Test Metal Track', 1, 1, 2, 180000, 5000000, 0.99);
 "
 ```
 
@@ -211,10 +219,14 @@ Redis_RDI_CTF/
 ├── README.md                          # This file
 ├── start.sh                           # Environment startup script
 ├── stop.sh                            # Environment shutdown script
+├── generate_load.sh                   # PostgreSQL load generation script
 ├── docker-compose-cloud.yml           # Main Docker configuration
 ├── postgresql.conf                    # PostgreSQL configuration
 ├── create_track_table.sql             # Database initialization
 ├── init-postgres-for-debezium.sql     # PostgreSQL setup for CDC
+├── generate_load.py                   # Load generation Python script
+├── requirements.txt                   # Python dependencies for load generation
+├── track.csv                          # Sample track data for load generation
 └── web/                               # Web dashboard files
 ```
 
