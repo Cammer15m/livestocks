@@ -23,7 +23,7 @@ def main():
     and generates random values for other track attributes such as genre, milliseconds, bytes, and unit price.
     """
     # read chinook track data from CSV
-    track_df = pd.read_csv("track.csv", usecols=["Name", "Composer"])
+    track_df = pd.read_csv("/tmp/track.csv", usecols=["Name", "Composer"])
 
     # connect to database
     print("connecting to DB")

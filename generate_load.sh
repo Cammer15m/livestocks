@@ -26,13 +26,30 @@ docker cp generate_load.py rdi-postgres:/tmp/
 docker cp track.csv rdi-postgres:/tmp/
 docker cp requirements.txt rdi-postgres:/tmp/
 
-# Install Python dependencies in the container (only if not already installed)
+# Install Python dependencies in the container
 echo "Installing Python dependencies in container..."
-docker exec rdi-postgres bash -c "
-    apt-get update -qq > /dev/null 2>&1
-    apt-get install -y python3 python3-pip > /dev/null 2>&1
-    pip3 install -r /tmp/requirements.txt > /dev/null 2>&1
-"
+echo "This may take a moment..."
+
+# Check if python3 is already installed
+if ! docker exec rdi-postgres which python3 &>/dev/null; then
+    echo "Installing Python3..."
+    docker exec --user root rdi-postgres bash -c "
+        apt-get update -qq
+        apt-get install -y python3 python3-pip
+    "
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to install Python3 in PostgreSQL container"
+        exit 1
+    fi
+fi
+
+# Install Python packages
+echo "Installing Python packages..."
+docker exec --user root rdi-postgres bash -c "pip3 install -r /tmp/requirements.txt"
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to install Python packages"
+    exit 1
+fi
 
 echo ""
 echo "Starting continuous load generation..."
