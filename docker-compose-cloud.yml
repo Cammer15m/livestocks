@@ -1,7 +1,9 @@
 services:
   # PostgreSQL source database with Debezium support
   postgresql:
-    image: 'postgres:15.3-bullseye'
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
     container_name: rdi-postgres
     user: postgres
     ports:

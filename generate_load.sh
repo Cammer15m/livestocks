@@ -21,35 +21,8 @@ fi
 
 echo "PostgreSQL is ready. Setting up load generator..."
 
-# Copy the load generation script and data into the container
-docker cp generate_load.py rdi-postgres:/tmp/
-docker cp track.csv rdi-postgres:/tmp/
-docker cp requirements.txt rdi-postgres:/tmp/
-
-# Install Python dependencies in the container
-echo "Installing Python dependencies in container..."
-echo "This may take a moment..."
-
-# Check if python3 is already installed
-if ! docker exec rdi-postgres which python3 &>/dev/null; then
-    echo "Installing Python3..."
-    docker exec --user root rdi-postgres bash -c "
-        apt-get update -qq
-        apt-get install -y python3 python3-pip
-    "
-    if [ $? -ne 0 ]; then
-        echo "Error: Failed to install Python3 in PostgreSQL container"
-        exit 1
-    fi
-fi
-
-# Install Python packages
-echo "Installing Python packages..."
-docker exec --user root rdi-postgres bash -c "pip3 install -r /tmp/requirements.txt"
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to install Python packages"
-    exit 1
-fi
+# Python and dependencies are already installed in the custom container
+echo "Python environment ready in container..."
 
 echo ""
 echo "Starting continuous load generation..."
