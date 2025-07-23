@@ -26,5 +26,9 @@ SHOW max_wal_senders;
 -- Create a test publication for all tables (Debezium will create its own)
 -- CREATE PUBLICATION test_publication FOR ALL TABLES;
 
+-- Fix Track sequence to match existing data (prevents duplicate key errors)
+-- This ensures new INSERTs get the correct next TrackId
+SELECT setval('"Track_TrackId_seq"', (SELECT MAX("TrackId") FROM "Track"));
+
 -- Log successful initialization
 SELECT 'PostgreSQL configured for Debezium logical replication' AS status;
