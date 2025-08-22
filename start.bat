@@ -15,12 +15,24 @@ echo Example: redis://default:mypassword@redis-17173.c14.us-east-1-2.ec2.redns.r
 echo.
 set /p REDIS_CONNECTION_STRING="Redis connection string: "
 
+REM Create temporary PowerShell script for parsing
+echo $connectionString = '%REDIS_CONNECTION_STRING%' > parse_redis.ps1
+echo if ($connectionString -match 'redis://([^:]+):([^@]+)@([^:]+):([0-9]+)') { >> parse_redis.ps1
+echo     Write-Output $matches[1] >> parse_redis.ps1
+echo     Write-Output $matches[2] >> parse_redis.ps1
+echo     Write-Output $matches[3] >> parse_redis.ps1
+echo     Write-Output $matches[4] >> parse_redis.ps1
+echo } else { >> parse_redis.ps1
+echo     Write-Output 'ERROR' >> parse_redis.ps1
+echo } >> parse_redis.ps1
+
 REM Parse the connection string using PowerShell
-for /f "tokens=1,2,3,4" %%a in ('powershell -Command "if ('%REDIS_CONNECTION_STRING%' -match 'redis://([^:]+):([^@]+)@([^:]+):([0-9]+)') { Write-Output $matches[1]; Write-Output $matches[2]; Write-Output $matches[3]; Write-Output $matches[4] } else { Write-Output 'ERROR' }"') do (
+for /f "tokens=1,2,3,4" %%a in ('powershell -ExecutionPolicy Bypass -File parse_redis.ps1') do (
     if "%%a"=="ERROR" (
         echo Error: Invalid connection string format!
         echo Expected format: redis://username:password@host:port
         echo Example: redis://default:mypassword@redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com:17173
+        del parse_redis.ps1 2>nul
         pause
         exit /b 1
     )
@@ -29,6 +41,14 @@ for /f "tokens=1,2,3,4" %%a in ('powershell -Command "if ('%REDIS_CONNECTION_STR
     set REDIS_HOST=%%c
     set REDIS_PORT=%%d
 )
+
+REM Clean up temporary file
+del parse_redis.ps1 2>nul
+
+REM Debug output
+echo Debug: REDIS_USER=%REDIS_USER%
+echo Debug: REDIS_HOST=%REDIS_HOST%
+echo Debug: REDIS_PORT=%REDIS_PORT%
 
 REM Validate required fields
 if "%REDIS_HOST%"=="" (
