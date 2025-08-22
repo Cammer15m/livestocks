@@ -15,20 +15,50 @@ echo Example: redis://default:mypassword@redis-17173.c14.us-east-1-2.ec2.redns.r
 echo.
 set /p REDIS_CONNECTION_STRING="Redis connection string: "
 
+REM Debug: Show what was entered
+echo.
+echo Debug: You entered: %REDIS_CONNECTION_STRING%
+echo Debug: Length:
+echo %REDIS_CONNECTION_STRING% | find /c /v ""
+echo.
+
 REM Create temporary PowerShell script for parsing (escape single quotes)
 set "ESCAPED_CONNECTION_STRING=%REDIS_CONNECTION_STRING:'=''%"
+echo Debug: Escaped string: %ESCAPED_CONNECTION_STRING%
+echo.
 echo $connectionString = '%ESCAPED_CONNECTION_STRING%' > parse_redis.ps1
-echo if ($connectionString -match 'redis://([^:]+):([^@]+)@([^:]+):([0-9]+)') { >> parse_redis.ps1
+echo Write-Output "Input: $connectionString" >> parse_redis.ps1
+echo if ($connectionString -match 'redis://([^:/?]+):([^@/?]+)@([^:/?]+):([0-9]+)') { >> parse_redis.ps1
+echo     Write-Output "Match found" >> parse_redis.ps1
+echo     Write-Output $matches[1] >> parse_redis.ps1
+echo     Write-Output $matches[2] >> parse_redis.ps1
+echo     Write-Output $matches[3] >> parse_redis.ps1
+echo     Write-Output $matches[4] >> parse_redis.ps1
+echo } elseif ($connectionString -match 'redis://([^:/?]+):([^@/?]+)@([^:/?]+):([0-9]+)(\?.*)?') { >> parse_redis.ps1
+echo     Write-Output "Match with params found" >> parse_redis.ps1
 echo     Write-Output $matches[1] >> parse_redis.ps1
 echo     Write-Output $matches[2] >> parse_redis.ps1
 echo     Write-Output $matches[3] >> parse_redis.ps1
 echo     Write-Output $matches[4] >> parse_redis.ps1
 echo } else { >> parse_redis.ps1
+echo     Write-Output "No match found" >> parse_redis.ps1
 echo     Write-Output 'ERROR' >> parse_redis.ps1
 echo } >> parse_redis.ps1
 
+REM Debug: Show PowerShell script content
+echo Debug: PowerShell script content:
+type parse_redis.ps1
+echo.
+
 REM Parse the connection string using PowerShell
-for /f "tokens=1,2,3,4" %%a in ('powershell -ExecutionPolicy Bypass -File parse_redis.ps1') do (
+echo Debug: Running PowerShell script...
+powershell -ExecutionPolicy Bypass -File parse_redis.ps1
+echo Debug: PowerShell script completed.
+echo.
+
+REM Parse output and extract the 4 values (skip debug lines)
+set PARSE_STEP=0
+for /f "tokens=*" %%a in ('powershell -ExecutionPolicy Bypass -File parse_redis.ps1') do (
     if "%%a"=="ERROR" (
         echo Error: Invalid connection string format!
         echo Expected format: redis://username:password@host:port
@@ -37,10 +67,19 @@ for /f "tokens=1,2,3,4" %%a in ('powershell -ExecutionPolicy Bypass -File parse_
         pause
         exit /b 1
     )
-    set REDIS_USER=%%a
-    set REDIS_PASSWORD=%%b
-    set REDIS_HOST=%%c
-    set REDIS_PORT=%%d
+    if "%%a"=="Match found" set PARSE_STEP=1
+    if "%%a"=="Match with params found" set PARSE_STEP=1
+    if !PARSE_STEP!==1 (
+        if not defined REDIS_USER (
+            set REDIS_USER=%%a
+        ) else if not defined REDIS_PASSWORD (
+            set REDIS_PASSWORD=%%a
+        ) else if not defined REDIS_HOST (
+            set REDIS_HOST=%%a
+        ) else if not defined REDIS_PORT (
+            set REDIS_PORT=%%a
+        )
+    )
 )
 
 REM Clean up temporary file
