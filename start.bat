@@ -15,8 +15,9 @@ echo Example: redis://default:mypassword@redis-17173.c14.us-east-1-2.ec2.redns.r
 echo.
 set /p REDIS_CONNECTION_STRING="Redis connection string: "
 
-REM Create temporary PowerShell script for parsing
-echo $connectionString = '%REDIS_CONNECTION_STRING%' > parse_redis.ps1
+REM Create temporary PowerShell script for parsing (escape single quotes)
+set "ESCAPED_CONNECTION_STRING=%REDIS_CONNECTION_STRING:'=''%"
+echo $connectionString = '%ESCAPED_CONNECTION_STRING%' > parse_redis.ps1
 echo if ($connectionString -match 'redis://([^:]+):([^@]+)@([^:]+):([0-9]+)') { >> parse_redis.ps1
 echo     Write-Output $matches[1] >> parse_redis.ps1
 echo     Write-Output $matches[2] >> parse_redis.ps1
@@ -87,11 +88,13 @@ echo    Password: ********
 echo.
 
 REM Configure environment with user's Redis Cloud instance
-echo # Redis Cloud Configuration (user provided) > .env
-echo REDIS_HOST=%REDIS_HOST% >> .env
-echo REDIS_PORT=%REDIS_PORT% >> .env
-echo REDIS_PASSWORD=%REDIS_PASSWORD% >> .env
-echo REDIS_USER=%REDIS_USER% >> .env
+(
+echo # Redis Cloud Configuration (user provided)
+echo REDIS_HOST=%REDIS_HOST%
+echo REDIS_PORT=%REDIS_PORT%
+echo REDIS_PASSWORD=%REDIS_PASSWORD%
+echo REDIS_USER=%REDIS_USER%
+) > .env
 
 REM Check if Docker is running
 docker info >nul 2>&1
@@ -121,23 +124,46 @@ if errorlevel 1 (
     set DOCKER_COMPOSE=docker compose
 )
 
+REM Check if docker-compose-cloud.yml exists
+if not exist "docker-compose-cloud.yml" (
+    echo Error: docker-compose-cloud.yml file not found!
+    echo Please make sure you're running this script from the correct directory.
+    pause
+    exit /b 1
+)
+
 echo Cleaning up any existing containers...
 %DOCKER_COMPOSE% -f docker-compose-cloud.yml down --remove-orphans
+if errorlevel 1 (
+    echo Warning: Error during cleanup, but continuing...
+)
 
 echo Starting Redis RDI Training Environment...
 %DOCKER_COMPOSE% -f docker-compose-cloud.yml up -d
+if errorlevel 1 (
+    echo Error: Failed to start containers!
+    echo Please check Docker Desktop is running and try again.
+    pause
+    exit /b 1
+)
 
 echo Waiting for services to start...
 timeout /t 10 /nobreak >nul
 
 REM Wait for PostgreSQL to be ready
 echo Waiting for PostgreSQL to be ready...
+set /a postgres_attempts=0
 :wait_postgres
+set /a postgres_attempts+=1
 docker exec rdi-postgres pg_isready -U postgres -d chinook >nul 2>&1
 if errorlevel 1 (
-    echo    Still waiting for PostgreSQL...
-    timeout /t 5 /nobreak >nul
-    goto wait_postgres
+    if %postgres_attempts% LSS 30 (
+        echo    Still waiting for PostgreSQL... (attempt %postgres_attempts%/30)
+        timeout /t 5 /nobreak >nul
+        goto wait_postgres
+    ) else (
+        echo Warning: PostgreSQL may not be ready yet, but continuing...
+    )
 )
 
 echo Checking container status...
