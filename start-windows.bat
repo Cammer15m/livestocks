@@ -1,0 +1,6 @@
+@echo off
+echo Starting Redis RDI Training Environment...
+echo.
+echo Running PowerShell script...
+powershell -ExecutionPolicy Bypass -File "start.ps1"
+pause
