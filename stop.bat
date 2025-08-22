@@ -1,23 +1,25 @@
 @echo off
-
 echo Stopping Redis RDI Training Environment...
+echo.
 
-REM Check if Docker Compose is available
-docker compose version >nul 2>&1
-if errorlevel 1 (
-    docker-compose --version >nul 2>&1
-    if errorlevel 1 (
-        echo Docker Compose is not available. Please install Docker Compose.
-        pause
-        exit /b 1
-    ) else (
-        set DOCKER_COMPOSE=docker-compose
-    )
-) else (
-    set DOCKER_COMPOSE=docker compose
+REM Check if PowerShell script exists
+if not exist "stop.ps1" (
+    echo Error: stop.ps1 not found!
+    echo Please make sure you're in the correct directory.
+    pause
+    exit /b 1
 )
 
-%DOCKER_COMPOSE% -f docker-compose-cloud.yml down --remove-orphans
+echo Running PowerShell with bypass execution policy...
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& '%~dp0stop.ps1'"
 
-echo Environment stopped.
+if errorlevel 1 (
+    echo.
+    echo Error: PowerShell script failed!
+    pause
+    exit /b 1
+)
+
+echo.
+echo Script completed successfully.
 pause
