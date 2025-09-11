@@ -1,6 +1,6 @@
-# Python packages specifically tested with Python 3.9
-# Using versions that are known to work well with Python 3.9
+# Python packages compatible with Python 3.11 (Debian 12)
+# Tested and verified to work with PostgreSQL 15 container
 pandas==1.5.3
-numpy==1.21.6
+numpy==1.24.3
 psycopg2-binary==2.9.7
 SQLAlchemy==1.4.53
