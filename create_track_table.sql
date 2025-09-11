@@ -1,41 +1,37 @@
--- CREATE TABLE "Track" (
--- 	"TrackId" integer PRIMARY KEY,
--- 	"Name" character varying(255) NOT NULL,
--- 	"AlbumId" integer NOT NULL,
--- 	"MediaTypeId" integer NOT NULL,
--- 	"GenreId" integer NOT NULL,
--- 	"Composer" character varying(255) NOT NULL,
--- 	"Milliseconds" integer NOT NULL,
--- 	"Bytes" integer NOT NULL,
--- 	"UnitPrice" numeric(10,2) NOT NULL
--- );
+-- PostgreSQL Database Initialization Script
+-- This script creates the Chinook music database schema and seed data
+-- for Redis RDI training environment
 
--- /*
--- Putting this insert as generate_load gives an error when there are no records in
--- the file
--- */
--- INSERT INTO "Track" VALUES (1,'Init Track',1,1,1,'Fela Kuti',1000,1000,19.99)
+\echo 'Starting database initialization...'
+\echo 'Creating tables for Chinook music database...'
 
 -- Create Table for "Album"
+\echo 'Creating Album table...'
 CREATE TABLE "Album" (
   "AlbumId" SERIAL PRIMARY KEY,
   "Title" TEXT NOT NULL,
   "Artist" TEXT NOT NULL
 );
+\echo 'Album table created successfully.'
 
 -- Create Table for "MediaType"
+\echo 'Creating MediaType table...'
 CREATE TABLE "MediaType" (
   "MediaTypeId" SERIAL PRIMARY KEY,
   "Name" TEXT NOT NULL
 );
+\echo 'MediaType table created successfully.'
 
 -- Create Table for "Genre"
+\echo 'Creating Genre table...'
 CREATE TABLE "Genre" (
   "GenreId" SERIAL PRIMARY KEY,
   "Name" TEXT NOT NULL
 );
+\echo 'Genre table created successfully.'
 
 -- Create Table for "Track"
+\echo 'Creating Track table...'
 CREATE TABLE "Track" (
   "TrackId" SERIAL PRIMARY KEY,
   "Name" character varying(255) NOT NULL,
@@ -47,32 +43,42 @@ CREATE TABLE "Track" (
   "Bytes" INTEGER NOT NULL,
   "UnitPrice" NUMERIC(10, 2) NOT NULL
 );
+\echo 'Track table created successfully.'
 
 -- Seed Data
-INSERT INTO "Album" ("AlbumId", "Title", "Artist") 
-VALUES 
+\echo 'Inserting seed data...'
+
+\echo 'Inserting Album data...'
+INSERT INTO "Album" ("AlbumId", "Title", "Artist")
+VALUES
 (1, 'For Those About to Rock We Salute You', 'AC/DC'),
 (2, 'Balls to the Wall', 'Accept'),
 (3, 'Restless and Wild', 'Accept'),
 (4, 'Let There Be Rock', 'AC/DC'),
 (5, 'Slide It In', 'Cloverdale'),
 (6, 'Master of Puppets', 'Metallica');
+\echo 'Album data inserted successfully.'
 
+\echo 'Inserting MediaType data...'
 INSERT INTO "MediaType" ("MediaTypeId", "Name")
-VALUES 
+VALUES
 (1, 'MPEG audio file'),
 (2, 'Advanced Audio Codec (AAC)');
+\echo 'MediaType data inserted successfully.'
 
+\echo 'Inserting Genre data...'
 INSERT INTO "Genre" ("GenreId", "Name")
-VALUES 
+VALUES
 (1, 'Rock'),
 (2, 'Metal'),
 (3, 'Hip Hop'),
 (4, 'Jazz'),
 (5, 'Electric Dance Music');
+\echo 'Genre data inserted successfully.'
 
-INSERT INTO "Track" ("TrackId", "Name", "AlbumId", "MediaTypeId", "GenreId", "Composer", "Milliseconds", "Bytes", "UnitPrice") 
-VALUES 
+\echo 'Inserting Track data...'
+INSERT INTO "Track" ("TrackId", "Name", "AlbumId", "MediaTypeId", "GenreId", "Composer", "Milliseconds", "Bytes", "UnitPrice")
+VALUES
 (1, 'For Those About To Rock (We Salute You)', 1, 1, 1, 'Angus Young, Malcolm Young, Brian Johnson', 343719, 11170334, 0.99),
 (2, 'Balls to the Wall', 2, 2, 1, '', 342562, 5510424, 0.99),
 (3, 'Fast As a Shark', 3, 2, 1, 'F. Baltes, S. Kaufman, U. Dirkscneider & W. Hoffman', 230619, 3990994, 0.99),
@@ -83,3 +89,8 @@ VALUES
 (8, 'Inject The Venom', 1, 1, 1, 'Angus Young, Malcolm Young, Brian Johnson', 210834, 6852860, 0.99),
 (9, 'Snowballed', 1, 1, 1, 'Angus Young, Malcolm Young, Brian Johnson', 203102, 6599424, 0.99),
 (10, 'Evil Walks', 1, 1, 1, 'Angus Young, Malcolm Young, Brian Johnson', 263497, 8611245, 0.99);
+\echo 'Track data inserted successfully.'
+
+\echo 'Database initialization completed successfully!'
+\echo 'Tables created: Album, MediaType, Genre, Track'
+\echo 'Seed data inserted for all tables.'

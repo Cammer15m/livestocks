@@ -2,38 +2,41 @@
 
 Write-Host "Stopping Redis RDI Training Environment..." -ForegroundColor Yellow
 
-# Check if Docker Compose is available
+# Check if Docker Compose is available (matching start.ps1 logic)
 $DOCKER_COMPOSE = ""
 $composeFound = $false
 
-# Try docker-compose first (more common on Windows)
+# First check: try both docker-compose and docker compose commands
 try {
-    $result = docker-compose --version 2>$null
+    $null = Get-Command docker-compose -ErrorAction Stop
+    docker-compose --version | Out-Null
     if ($LASTEXITCODE -eq 0) {
-        $DOCKER_COMPOSE = "docker-compose"
         $composeFound = $true
     }
-} catch {
-    # Ignore error, try next option
-}
+} catch {}
 
-# Try docker compose if docker-compose didn't work
 if (-not $composeFound) {
     try {
-        $result = docker compose version 2>$null
+        docker compose version | Out-Null
         if ($LASTEXITCODE -eq 0) {
-            $DOCKER_COMPOSE = "docker compose"
             $composeFound = $true
         }
-    } catch {
-        # Ignore error
-    }
+    } catch {}
 }
 
 if (-not $composeFound) {
-    Write-Host "Docker Compose is not available. Please install Docker Compose." -ForegroundColor Red
+    Write-Host "Docker Compose is not available." -ForegroundColor Red
+    Write-Host "Please install Docker Compose or ensure Docker Desktop is fully installed." -ForegroundColor Red
     Read-Host "Press Enter to exit"
     exit 1
+}
+
+# Determine which Docker Compose command to use (matching start.ps1 logic)
+try {
+    $null = Get-Command docker-compose -ErrorAction Stop
+    $DOCKER_COMPOSE = "docker-compose"
+} catch {
+    $DOCKER_COMPOSE = "docker compose"
 }
 
 if ($DOCKER_COMPOSE -eq "docker-compose") {

@@ -219,12 +219,67 @@ $DOCKER_COMPOSE -f docker-compose-cloud.yml up -d
 echo "Waiting for services to start..."
 sleep 10
 
-# Wait for PostgreSQL to be ready
+# Wait for PostgreSQL to be ready with enhanced logging
 echo "Waiting for PostgreSQL to be ready..."
-until docker exec rdi-postgres pg_isready -U postgres -d chinook &>/dev/null; do
-    echo "   Still waiting for PostgreSQL..."
+echo "This includes database initialization, table creation, and Debezium configuration..."
+
+attempt=1
+max_attempts=60  # 5 minutes total
+while [ $attempt -le $max_attempts ]; do
+    # Check if container is running
+    if ! docker ps --format "{{.Names}}" | grep -q "rdi-postgres"; then
+        echo "ERROR: PostgreSQL container is not running!"
+        echo "Checking container status:"
+        docker ps -a --filter "name=rdi-postgres"
+        echo ""
+        echo "PostgreSQL container logs:"
+        docker logs rdi-postgres --tail 20
+        exit 1
+    fi
+
+    # Check PostgreSQL readiness
+    if docker exec rdi-postgres pg_isready -U postgres -d chinook &>/dev/null; then
+        echo "PostgreSQL is ready!"
+        break
+    fi
+
+    # Show progress and logs every 10 attempts (30 seconds)
+    if [ $((attempt % 10)) -eq 0 ]; then
+        echo "   Still waiting for PostgreSQL... (attempt $attempt/$max_attempts)"
+        echo "   Container status:"
+        docker exec rdi-postgres ps aux | grep postgres || echo "   Could not check PostgreSQL processes"
+        echo "   Recent PostgreSQL logs:"
+        docker logs rdi-postgres --tail 5 2>/dev/null || echo "   Could not retrieve logs"
+        echo ""
+    elif [ $((attempt % 5)) -eq 0 ]; then
+        echo "   Still waiting for PostgreSQL... (attempt $attempt/$max_attempts)"
+    fi
+
     sleep 5
+    ((attempt++))
 done
+
+if [ $attempt -gt $max_attempts ]; then
+    echo "ERROR: PostgreSQL failed to start within 5 minutes!"
+    echo ""
+    echo "Container status:"
+    docker ps -a --filter "name=rdi-postgres"
+    echo ""
+    echo "PostgreSQL logs:"
+    docker logs rdi-postgres
+    echo ""
+    echo "Please check the logs above for errors and try again."
+    exit 1
+fi
+
+# Verify database initialization
+echo "Verifying database initialization..."
+if docker exec rdi-postgres psql -U postgres -d chinook -c "SELECT COUNT(*) FROM \"Track\";" &>/dev/null; then
+    track_count=$(docker exec rdi-postgres psql -U postgres -d chinook -t -c "SELECT COUNT(*) FROM \"Track\";" | tr -d ' ')
+    echo "Database verification successful! Track table has $track_count records."
+else
+    echo "WARNING: Could not verify database initialization. Continuing anyway..."
+fi
 
 echo "Checking container status..."
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
