@@ -15,11 +15,9 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Verify Python version (should be 3.11.2 in Debian 12)
-RUN python3 --version
+RUN python3 --version && python3 -m pip --version
 
-# Upgrade pip using --break-system-packages (required for Python 3.11 in Debian 12)
-RUN python3 -m pip install --break-system-packages --upgrade pip setuptools wheel
-
+# Skip pip upgrade and install packages directly (more reliable)
 # Copy requirements and install Python packages
 COPY requirements.txt /tmp/requirements.txt
 RUN python3 -m pip install --break-system-packages --no-cache-dir -r /tmp/requirements.txt

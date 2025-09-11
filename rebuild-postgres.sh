@@ -22,35 +22,36 @@ echo "3. Building PostgreSQL container..."
 echo "   This may take a few minutes..."
 echo ""
 
-# Try building with the main Dockerfile
-echo "Attempting build with main Dockerfile..."
-if docker build -f Dockerfile.postgres -t redis_rdi_ctf-postgresql . 2>&1 | tee build.log; then
+# Try building with the simplified Dockerfile first (more reliable)
+echo "Attempting build with simplified Dockerfile (system packages)..."
+if docker build -f Dockerfile.postgres.simple -t redis_rdi_ctf-postgresql . 2>&1 | tee build-simple.log; then
     echo ""
-    echo "✅ Build successful with main Dockerfile!"
+    echo "✅ Build successful with simplified Dockerfile!"
     BUILD_SUCCESS=true
+    echo ""
+    echo "Note: Using system Python packages for maximum compatibility."
 else
     echo ""
-    echo "❌ Build failed with main Dockerfile. Trying simplified version..."
+    echo "❌ Simplified build failed. Trying main Dockerfile..."
     echo ""
-    
-    # Try building with simplified Dockerfile
-    if docker build -f Dockerfile.postgres.simple -t redis_rdi_ctf-postgresql . 2>&1 | tee build-simple.log; then
+
+    # Try building with main Dockerfile
+    if docker build -f Dockerfile.postgres -t redis_rdi_ctf-postgresql . 2>&1 | tee build.log; then
         echo ""
-        echo "✅ Build successful with simplified Dockerfile!"
+        echo "✅ Build successful with main Dockerfile!"
         BUILD_SUCCESS=true
-        echo ""
-        echo "Note: Using simplified Python environment. Some features may be limited."
     else
         echo ""
         echo "❌ Both builds failed. Please check the logs:"
-        echo "   - Main build log: build.log"
         echo "   - Simple build log: build-simple.log"
+        echo "   - Main build log: build.log"
         echo ""
         echo "Common solutions:"
         echo "1. Check internet connection for package downloads"
         echo "2. Restart Docker Desktop"
         echo "3. Clear Docker build cache: docker builder prune"
         echo "4. Check available disk space: df -h"
+        echo "5. Try: docker system prune -f"
         BUILD_SUCCESS=false
     fi
 fi

@@ -3,7 +3,7 @@ services:
   postgresql:
     build:
       context: .
-      dockerfile: Dockerfile.postgres
+      dockerfile: Dockerfile.postgres.simple
     container_name: rdi-postgres
     user: postgres
     ports:
