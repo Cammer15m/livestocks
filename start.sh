@@ -9,8 +9,8 @@ echo "Redis Cloud Configuration"
 echo "Please paste your Redis Cloud connection string:"
 echo "This Redis instance will be used as the target database."
 echo ""
-echo "Format: redis://username:password@host:port"
-echo "Example: redis://default:mypassword@redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com:17173"
+echo "Copy and paste this connection string:"
+echo "redis://default:redislabs@redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com:17173"
 echo ""
 read -p "Redis connection string: " REDIS_CONNECTION_STRING
 
@@ -30,7 +30,7 @@ if [[ $REDIS_CONNECTION_STRING =~ redis://([^:]+):([^@]+)@([^:]+):([0-9]+) ]]; t
 else
     echo "Error: Invalid connection string format!"
     echo "Expected format: redis://username:password@host:port"
-    echo "Example: redis://default:mypassword@redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com:17173"
+    echo "Example: redis://default:redislabs@redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com:17173"
     exit 1
 fi
 
@@ -39,7 +39,7 @@ if [[ -z "$REDIS_HOST" || -z "$REDIS_PORT" || -z "$REDIS_PASSWORD" ]]; then
     echo "Error: Redis host, port, and password are required!"
     echo ""
     echo "Example Redis Cloud connection string:"
-    echo "   redis://default:password@redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com:17173"
+    echo "   redis://default:redislabs@redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com:17173"
     exit 1
 fi
 

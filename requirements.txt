@@ -4,3 +4,17 @@ pandas==1.5.3
 numpy==1.24.3
 psycopg2-binary==2.9.7
 SQLAlchemy==1.4.53
+
+# Polygon.io API client and related dependencies
+polygon-api-client==1.15.3
+requests==2.31.0
+python-dotenv==1.0.0
+
+# Additional utilities for data processing and scheduling
+schedule==1.2.0
+pytz==2023.3
+
+# Web UI dependencies
+flask==2.3.3
+flask-socketio==5.3.6
+eventlet==0.33.3

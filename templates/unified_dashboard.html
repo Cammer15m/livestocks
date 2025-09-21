@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Unified Stock Dashboard - Complete Pipeline</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .pipeline-flow {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .flow-step {
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border-radius: 8px;
+            margin: 0 10px;
+        }
+        
+        .flow-arrow {
+            font-size: 1.5em;
+            color: #3498db;
+        }
+        
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            text-align: center;
+            display: none;
+        }
+        
+        .alert-crash {
+            background: #ffebee;
+            color: #c62828;
+            border: 2px solid #ef5350;
+        }
+        
+        .alert-surge {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 2px solid #66bb6a;
+        }
+
+        .alert-success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 2px solid #4caf50;
+        }
+        
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 5px solid #3498db;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+            background: #e74c3c;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-indicator.running {
+            background: #27ae60;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            min-width: 140px;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #229954;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #7f8c8d;
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border: 1px solid #e9ecef;
+        }
+        
+        .card h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+        
+        .stat {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            flex: 1;
+            margin: 0 5px;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #3498db;
+            display: block;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .stock-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stock-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            transition: all 0.3s ease;
+        }
+        
+        .stock-card.crash {
+            border-left-color: #e74c3c;
+            background: #ffebee;
+        }
+        
+        .stock-card.surge {
+            border-left-color: #27ae60;
+            background: #e8f5e8;
+        }
+        
+        .stock-ticker {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .stock-price {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        
+        .stock-change {
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        
+        .positive {
+            color: #27ae60;
+        }
+        
+        .negative {
+            color: #e74c3c;
+        }
+        
+        .progress-container {
+            margin: 20px 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+        
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .logs {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+        
+        .log-timestamp {
+            color: #95a5a6;
+        }
+        
+        .log-level-info {
+            color: #3498db;
+        }
+        
+        .log-level-warning {
+            color: #f39c12;
+        }
+        
+        .log-level-error {
+            color: #e74c3c;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .refresh-btn {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        
+        .refresh-btn:hover {
+            background: #138496;
+        }
+        
+        .no-data {
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+            padding: 20px;
+        }
+        
+        .intensity-slider {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+        
+        .rdi-jobs {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .job-config {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .job-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .job-description {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        
+        .config-code {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        
+        .copy-btn {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .copy-btn:hover {
+            background: #138496;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .stat {
+                margin: 0;
+            }
+            
+            .pipeline-flow {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .flow-arrow {
+                transform: rotate(90deg);
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Unified Stock Dashboard</h1>
+        <p class="subtitle">Complete stock data pipeline: Polygon.io → PostgreSQL → RDI → Redis</p>
+        
+        <div class="pipeline-flow">
+            <div class="flow-step">Polygon.io API</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">PostgreSQL</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">RDI</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">Redis</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">Dashboard</div>
+        </div>
+        
+        <div id="alertContainer"></div>
+        
+        <div class="status-bar">
+            <div class="status-indicator" id="statusIndicator"></div>
+            <span id="statusText">Stopped</span>
+            <span id="statusDetail">Ready</span>
+        </div>
+        
+        <div class="controls">
+            <button id="startBtn" class="btn-primary" onclick="startFetching()">📡 Fetch from Polygon.io</button>
+            <button id="stopBtn" class="btn-danger" onclick="stopFetching()" disabled>⏹️ Stop Fetching</button>
+            
+            <div>
+                <label for="crashIntensity" class="slider-label">
+                    <span>Crash:</span>
+                    <span id="crashValue">30%</span>
+                </label>
+                <input type="range" id="crashIntensity" class="intensity-slider" min="15" max="50" value="30" 
+                       oninput="document.getElementById('crashValue').textContent = this.value + '%'">
+                <button class="btn-danger" onclick="simulateCrash()">💥 Crash</button>
+            </div>
+            
+            <div>
+                <label for="surgeIntensity" class="slider-label">
+                    <span>Surge:</span>
+                    <span id="surgeValue">40%</span>
+                </label>
+                <input type="range" id="surgeIntensity" class="intensity-slider" min="20" max="60" value="40"
+                       oninput="document.getElementById('surgeValue').textContent = this.value + '%'">
+                <button class="btn-success" onclick="simulateSurge()">🚀 Surge</button>
+            </div>
+            
+            <button class="btn-secondary" onclick="refreshAll()">🔄 Refresh All</button>
+        </div>
+        
+        <div class="progress-container" id="progressContainer" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">Initializing...</div>
+        </div>
+        
+        <div class="grid">
+            <div class="card">
+                <h3>📊 PostgreSQL Data <button class="refresh-btn" onclick="refreshPostgres()" id="refreshPostgresBtn">🔄 Refresh</button></h3>
+                <div class="stats" id="postgresStats">
+                    <div class="stat">
+                        <span class="stat-value" id="tickerCount">-</span>
+                        <div class="stat-label">Tickers</div>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="dailyCount">-</span>
+                        <div class="stat-label">Daily Records</div>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="successRate">-</span>
+                        <div class="stat-label">Success Rate</div>
+                    </div>
+                </div>
+                <table id="postgresTable">
+                    <thead>
+                        <tr>
+                            <th>Ticker</th>
+                            <th>Date</th>
+                            <th>Close</th>
+                            <th>Volume</th>
+                        </tr>
+                    </thead>
+                    <tbody id="postgresTableBody">
+                        <tr>
+                            <td colspan="4" class="no-data">No data available</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div style="margin-top: 20px;">
+                    <h4>📈 Top 5 Stocks Price Chart</h4>
+                    <div style="width: 100%; height: 300px; border: 1px solid #ddd; background: white; padding: 10px;">
+                        <canvas id="postgresChart" style="width: 100%; height: 100%;"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>🔴 Redis Live Data <button class="refresh-btn" onclick="refreshRedis()">Refresh</button></h3>
+                <div class="stats" id="redisStats">
+                    <div class="stat">
+                        <span class="stat-value" id="totalKeys">-</span>
+                        <div class="stat-label">Total Keys</div>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="stockKeys">-</span>
+                        <div class="stat-label">Stock Keys</div>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="latestKeys">-</span>
+                        <div class="stat-label">Latest Keys</div>
+                    </div>
+                </div>
+                <div class="stock-grid" id="stockGrid">
+                    <div class="stock-card">
+                        <div class="stock-ticker">Loading...</div>
+                        <div class="stock-price">Fetching Redis data...</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <h4>📈 Redis Data Flow & Timing</h4>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <span id="redisTimer">⏱️ Waiting for data...</span>
+                        <span id="redisLatency">Latency: --</span>
+                    </div>
+                    <div style="width: 100%; height: 250px; border: 1px solid #ddd; background: white; padding: 10px;">
+                        <canvas id="redisChart" style="width: 100%; height: 100%;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h3>📝 Live Activity Logs</h3>
+                <div class="logs" id="logsContainer">
+                    <div class="log-entry">
+                        <span class="log-timestamp">[Loading...]</span>
+                        <span class="log-level-info">[INFO]</span>
+                        Initializing unified dashboard...
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>⚙️ RDI Job Configurations</h3>
+                <div class="rdi-jobs" id="rdiJobs">
+                    <div class="job-config">
+                        <div class="job-title">Loading job configurations...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let isConnected = false;
+        let isFetching = false;
+        let postgresChart = null;
+        let redisChart = null;
+        let dataTimestamps = {};
+        let redisUpdateTimer = null;
+
+        // Socket event handlers
+        socket.on('connect', function() {
+            isConnected = true;
+            addLog('Connected to Unified Stock Dashboard', 'INFO');
+            refreshAll();
+        });
+
+        socket.on('disconnect', function() {
+            isConnected = false;
+            addLog('Disconnected from server', 'WARNING');
+        });
+
+        socket.on('status_update', function(data) {
+            updateStatus(data.status, data.detail || '');
+            if (data.progress !== undefined) {
+                updateProgress(data.progress, data.current_ticker || '');
+            }
+        });
+
+        socket.on('log_message', function(data) {
+            addLog(data.message, data.level || 'INFO');
+        });
+
+        socket.on('data_update', function(data) {
+            if (data.source === 'polygon') {
+                // Show immediate feedback for new ticker data
+                if (data.ticker) {
+                    addLog(`✅ ${data.ticker} data updated - refreshing displays...`, 'INFO');
+                    startRedisTimer(data.ticker);
+                }
+                refreshPostgres();
+                refreshRedis();
+
+                // Show a brief success indicator
+                if (data.ticker) {
+                    showAlert('success', `📊 ${data.ticker} data fetched and updated!`);
+                }
+            } else {
+                refreshRedis();
+            }
+        });
+
+        socket.on('market_event', function(data) {
+            showAlert(data.type, data.message);
+            addLog(data.message, data.type === 'CRASH' ? 'ERROR' : 'INFO');
+            setTimeout(refreshRedis, 1000);
+        });
+
+        socket.on('stock_update', function(data) {
+            updateStockDisplay(data.stocks);
+        });
+
+        // UI Functions
+        function showAlert(type, message) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type.toLowerCase()}`;
+            alert.textContent = message;
+            alert.style.display = 'block';
+            
+            alertContainer.innerHTML = '';
+            alertContainer.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+
+        function updateStatus(status, detail) {
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const statusDetail = document.getElementById('statusDetail');
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const progressContainer = document.getElementById('progressContainer');
+
+            statusText.textContent = status;
+            statusDetail.textContent = detail;
+
+            if (status === 'Running') {
+                indicator.classList.add('running');
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                progressContainer.style.display = 'block';
+                isFetching = true;
+            } else {
+                indicator.classList.remove('running');
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                if (status === 'Completed') {
+                    progressContainer.style.display = 'block';
+                    updateProgress(100, 'Completed');
+                } else {
+                    progressContainer.style.display = 'none';
+                }
+                isFetching = false;
+            }
+        }
+
+        function updateProgress(percentage, currentTicker) {
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+
+            progressFill.style.width = percentage + '%';
+            
+            if (percentage === 100) {
+                progressText.textContent = '✅ All tickers completed!';
+            } else if (currentTicker) {
+                progressText.textContent = `📡 Fetching ${currentTicker}... (${percentage}% complete)`;
+            } else {
+                progressText.textContent = `${percentage}% complete`;
+            }
+        }
+
+        function addLog(message, level) {
+            const logsContainer = document.getElementById('logsContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `
+                <span class="log-timestamp">[${timestamp}]</span>
+                <span class="log-level-${level.toLowerCase()}">[${level}]</span>
+                ${message}
+            `;
+            
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+
+            // Keep only last 100 log entries
+            while (logsContainer.children.length > 100) {
+                logsContainer.removeChild(logsContainer.firstChild);
+            }
+        }
+
+        function updateStockDisplay(stocks) {
+            const stockGrid = document.getElementById('stockGrid');
+            
+            if (!stocks || stocks.length === 0) {
+                stockGrid.innerHTML = '<div class="stock-card"><div class="stock-ticker">No data</div><div class="stock-price">No Redis data available</div></div>';
+                return;
+            }
+
+            // Group by ticker and get latest
+            const latestStocks = {};
+            stocks.forEach(stock => {
+                if (stock.ticker && (!latestStocks[stock.ticker] || stock.key_type === 'latest' || stock.event_type)) {
+                    latestStocks[stock.ticker] = stock;
+                }
+            });
+
+            // Limit to 5 stocks to match PostgreSQL table
+            const stocksToShow = Object.values(latestStocks).slice(0, 5);
+
+            stockGrid.innerHTML = stocksToShow.map(stock => {
+                const price = parseFloat(stock.close || 0);
+                const change = parseFloat(stock.price_change || 0);
+                const changePercent = parseFloat(stock.price_change_percent || 0);
+                const volume = parseInt(stock.volume || 0);
+                
+                let cardClass = 'stock-card';
+                if (stock.event_type === 'CRASH') cardClass += ' crash';
+                if (stock.event_type === 'SURGE') cardClass += ' surge';
+                
+                const changeClass = change >= 0 ? 'positive' : 'negative';
+                const changeSymbol = change >= 0 ? '+' : '';
+                
+                return `
+                    <div class="${cardClass}">
+                        <div class="stock-ticker">${stock.ticker}</div>
+                        <div class="stock-price">$${price.toFixed(2)}</div>
+                        <div class="stock-change ${changeClass}">
+                            ${changeSymbol}$${change.toFixed(2)} (${changeSymbol}${changePercent.toFixed(2)}%)
+                        </div>
+                        <div style="font-size: 0.8em; color: #7f8c8d; margin-top: 5px;">
+                            Vol: ${volume.toLocaleString()}
+                            ${stock.event_type ? `<br><strong>${stock.event_type}</strong>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updatePostgresTable(data) {
+            const tbody = document.getElementById('postgresTableBody');
+            
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="no-data">No data available</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(row => {
+                // Handle date formatting safely
+                let dateStr = 'Invalid Date';
+                try {
+                    if (row.date) {
+                        const date = new Date(row.date);
+                        if (!isNaN(date.getTime())) {
+                            dateStr = date.toDateString();
+                        }
+                    }
+                } catch (e) {
+                    console.error('Date parsing error:', e, row.date);
+                }
+
+                // Handle numeric values safely
+                const closePrice = (row.close && !isNaN(row.close)) ? parseFloat(row.close).toFixed(2) : 'N/A';
+                const volume = (row.volume && !isNaN(row.volume)) ? parseInt(row.volume).toLocaleString() : 'N/A';
+
+                return `
+                    <tr>
+                        <td>${row.ticker || 'N/A'}</td>
+                        <td>${dateStr}</td>
+                        <td>$${closePrice}</td>
+                        <td>${volume}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // API Functions
+        function startFetching() {
+            // Immediate visual feedback
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const statusElement = document.getElementById('status');
+            const progressElement = document.getElementById('progress');
+
+            // Update UI immediately
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            statusElement.textContent = 'Fetching...';
+            statusElement.className = 'status running';
+            progressElement.style.width = '0%';
+            progressElement.textContent = 'Starting...';
+
+            addLog('🚀 Starting Polygon.io data fetch...', 'INFO');
+
+            fetch('/api/start', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        addLog('✅ Polygon.io data fetching started successfully', 'INFO');
+                    } else {
+                        addLog('❌ Failed to start fetching: ' + data.error, 'ERROR');
+                        // Reset UI on error
+                        startBtn.disabled = false;
+                        stopBtn.disabled = true;
+                        statusElement.textContent = 'Error';
+                        statusElement.className = 'status error';
+                    }
+                })
+                .catch(error => {
+                    addLog('❌ Error starting fetch: ' + error, 'ERROR');
+                    // Reset UI on error
+                    startBtn.disabled = false;
+                    stopBtn.disabled = true;
+                    statusElement.textContent = 'Error';
+                    statusElement.className = 'status error';
+                });
+        }
+
+        function stopFetching() {
+            fetch('/api/stop', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        addLog('Data fetching stopped', 'INFO');
+                    } else {
+                        addLog('Failed to stop fetching: ' + data.error, 'ERROR');
+                    }
+                })
+                .catch(error => {
+                    addLog('Error stopping fetch: ' + error, 'ERROR');
+                });
+        }
+
+        function simulateCrash() {
+            const intensity = document.getElementById('crashIntensity').value / 100;
+            
+            fetch('/api/simulate/crash', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ intensity: intensity })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    addLog('Failed to simulate crash: ' + data.error, 'ERROR');
+                }
+            })
+            .catch(error => {
+                addLog('Error simulating crash: ' + error, 'ERROR');
+            });
+        }
+
+        function simulateSurge() {
+            const intensity = document.getElementById('surgeIntensity').value / 100;
+            
+            fetch('/api/simulate/upturn', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ intensity: intensity })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    addLog('Failed to simulate surge: ' + data.error, 'ERROR');
+                }
+            })
+            .catch(error => {
+                addLog('Error simulating surge: ' + error, 'ERROR');
+            });
+        }
+
+        function refreshPostgres() {
+            const refreshBtn = document.getElementById('refreshPostgresBtn');
+
+            // Visual feedback
+            if (refreshBtn) {
+                refreshBtn.innerHTML = '🔄 Refreshing...';
+                refreshBtn.disabled = true;
+            }
+
+            // Get stats
+            fetch('/api/stats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('tickerCount').textContent = data.stats.tickers || '-';
+                        document.getElementById('dailyCount').textContent = data.stats.daily_records || '-';
+                        document.getElementById('successRate').textContent = data.stats.success_rate || '-';
+
+                        // Update PostgreSQL chart with stock prices
+                        updateStockChart();
+
+                        addLog(`📊 PostgreSQL: ${data.stats.daily_records || 0} records, ${data.stats.tickers || 0} tickers`, 'INFO');
+                    }
+                })
+                .catch(error => {
+                    addLog('❌ Error fetching PostgreSQL stats: ' + error, 'ERROR');
+                })
+                .finally(() => {
+                    // Reset button
+                    if (refreshBtn) {
+                        refreshBtn.innerHTML = '🔄 Refresh';
+                        refreshBtn.disabled = false;
+                    }
+                });
+
+            // Get data
+            fetch('/api/data/daily_aggregates?limit=5')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updatePostgresTable(data.data);
+                        addLog(`✅ PostgreSQL table updated with ${data.data.length} records`, 'INFO');
+                    }
+                })
+                .catch(error => {
+                    addLog('❌ Error fetching PostgreSQL data: ' + error, 'ERROR');
+                });
+        }
+
+        function refreshRedis() {
+            fetch('/api/redis/stocks')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateStockDisplay(data.stocks);
+
+                        // Update Redis stats
+                        document.getElementById('totalKeys').textContent = data.total_keys || 0;
+                        document.getElementById('stockKeys').textContent = data.stock_keys || 0;
+                        document.getElementById('latestKeys').textContent = data.latest_keys || 0;
+
+                        // Check for new data and calculate latency
+                        let latency = 0;
+                        data.stocks.forEach(stock => {
+                            if (stock.ticker && dataTimestamps[stock.ticker]) {
+                                latency = Math.max(latency, calculateRedisLatency(stock.ticker));
+                            }
+                        });
+
+                        // Update Redis chart
+                        const keyCount = data.total_keys || 0;
+                        updateRedisChart(keyCount, latency);
+
+                        addLog(`Redis: ${data.total_keys} keys found`, 'INFO');
+                    } else {
+                        addLog('Failed to fetch Redis data: ' + data.error, 'ERROR');
+                    }
+                })
+                .catch(error => {
+                    addLog('Error fetching Redis data: ' + error, 'ERROR');
+                });
+        }
+
+        function monitorRedisRealtime() {
+            fetch('/api/redis/stocks')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Silent update for real-time monitoring
+                        const keyCount = data.total_keys || 0;
+
+                        // Check for new data and calculate latency
+                        let latency = 0;
+                        data.stocks.forEach(stock => {
+                            if (stock.ticker && dataTimestamps[stock.ticker]) {
+                                latency = Math.max(latency, calculateRedisLatency(stock.ticker));
+                            }
+                        });
+
+                        // Update chart with current data
+                        if (latency > 0 || keyCount > 0) {
+                            updateRedisChart(keyCount, latency);
+                        }
+
+                        // Update stock display if there are changes
+                        updateStockDisplay(data.stocks);
+                    }
+                })
+                .catch(error => {
+                    // Silent fail for real-time monitoring
+                });
+        }
+
+        function refreshAll() {
+            refreshPostgres();
+            refreshRedis();
+            loadRDIJobs();
+        }
+
+        function loadRDIJobs() {
+            fetch('/api/rdi/jobs')
+                .then(response => response.json())
+                .then(jobs => {
+                    const rdiJobs = document.getElementById('rdiJobs');
+                    
+                    rdiJobs.innerHTML = Object.entries(jobs).map(([key, job]) => `
+                        <div class="job-config">
+                            <div class="job-title">${job.name}</div>
+                            <div class="job-description">${job.description}</div>
+                            <div class="config-code">${JSON.stringify(job.config, null, 2)}</div>
+                            <button class="copy-btn" onclick="copyToClipboard('${key}')">📋 Copy Config</button>
+                        </div>
+                    `).join('');
+                })
+                .catch(error => {
+                    addLog('Error loading RDI jobs: ' + error, 'ERROR');
+                });
+        }
+
+        function copyToClipboard(jobKey) {
+            fetch('/api/rdi/jobs')
+                .then(response => response.json())
+                .then(jobs => {
+                    const config = JSON.stringify(jobs[jobKey].config, null, 2);
+                    navigator.clipboard.writeText(config).then(() => {
+                        addLog(`Copied ${jobs[jobKey].name} configuration to clipboard`, 'INFO');
+                    });
+                });
+        }
+
+        // Chart Functions
+        function initializeCharts() {
+            console.log('Initializing charts...');
+
+            // PostgreSQL Chart
+            const postgresCanvas = document.getElementById('postgresChart');
+            console.log('PostgreSQL canvas:', postgresCanvas);
+
+            if (!postgresCanvas) {
+                console.error('PostgreSQL canvas not found!');
+                return;
+            }
+
+            const postgresCtx = postgresCanvas.getContext('2d');
+            console.log('PostgreSQL context:', postgresCtx);
+
+            postgresChart = new Chart(postgresCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'AAPL',
+                            data: [],
+                            borderColor: 'rgb(255, 99, 132)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                            tension: 0.1
+                        },
+                        {
+                            label: 'GOOGL',
+                            data: [],
+                            borderColor: 'rgb(54, 162, 235)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                            tension: 0.1
+                        },
+                        {
+                            label: 'MSFT',
+                            data: [],
+                            borderColor: 'rgb(255, 205, 86)',
+                            backgroundColor: 'rgba(255, 205, 86, 0.1)',
+                            tension: 0.1
+                        },
+                        {
+                            label: 'TSLA',
+                            data: [],
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                            tension: 0.1
+                        },
+                        {
+                            label: 'AMZN',
+                            data: [],
+                            borderColor: 'rgb(153, 102, 255)',
+                            backgroundColor: 'rgba(153, 102, 255, 0.1)',
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Stock Price ($)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Top 5 Stocks Price Movement'
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+
+            console.log('PostgreSQL chart created:', postgresChart);
+
+            // Redis Chart
+            const redisCanvas = document.getElementById('redisChart');
+            console.log('Redis canvas:', redisCanvas);
+
+            if (!redisCanvas) {
+                console.error('Redis canvas not found!');
+                return;
+            }
+
+            const redisCtx = redisCanvas.getContext('2d');
+            console.log('Redis context:', redisCtx);
+
+            redisChart = new Chart(redisCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Redis Keys',
+                            data: [],
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Latency (seconds)',
+                            data: [],
+                            borderColor: '#f39c12',
+                            backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Keys'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Latency (seconds)'
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Redis Data Flow & Latency'
+                        }
+                    }
+                }
+            });
+
+            console.log('Redis chart created:', redisChart);
+            console.log('Charts initialization complete');
+        }
+
+        function updateStockChart() {
+            if (!postgresChart) return;
+
+            // Fetch current stock data
+            fetch('/api/data/daily_aggregates?limit=5')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.data.length > 0) {
+                        const now = new Date().toLocaleTimeString();
+                        const chartData = postgresChart.data;
+
+                        // Add new time label
+                        chartData.labels.push(now);
+
+                        // Update each stock's data
+                        const stockPrices = {
+                            'AAPL': 0,
+                            'GOOGL': 0,
+                            'MSFT': 0,
+                            'TSLA': 0,
+                            'AMZN': 0
+                        };
+
+                        // Get latest prices for each stock
+                        data.data.forEach(row => {
+                            if (stockPrices.hasOwnProperty(row.ticker)) {
+                                stockPrices[row.ticker] = parseFloat(row.close) || 0;
+                            }
+                        });
+
+                        // Update chart datasets
+                        chartData.datasets.forEach((dataset, index) => {
+                            const ticker = dataset.label;
+                            dataset.data.push(stockPrices[ticker]);
+                        });
+
+                        // Keep only last 10 data points for better performance
+                        if (chartData.labels.length > 10) {
+                            chartData.labels.shift();
+                            chartData.datasets.forEach(dataset => {
+                                dataset.data.shift();
+                            });
+                        }
+
+                        postgresChart.update('none');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating stock chart:', error);
+                });
+        }
+
+        function updateRedisChart(keyCount, latency) {
+            if (!redisChart) return;
+
+            const now = new Date().toLocaleTimeString();
+            const data = redisChart.data;
+
+            data.labels.push(now);
+            data.datasets[0].data.push(keyCount);
+            data.datasets[1].data.push(latency);
+
+            // Keep only last 10 data points for better alignment
+            if (data.labels.length > 10) {
+                data.labels.shift();
+                data.datasets[0].data.shift();
+                data.datasets[1].data.shift();
+            }
+
+            redisChart.update('none');
+
+            // Update latency display
+            document.getElementById('redisLatency').textContent = `Latency: ${latency.toFixed(2)}s`;
+        }
+
+        function startRedisTimer(ticker) {
+            dataTimestamps[ticker] = Date.now();
+            document.getElementById('redisTimer').textContent = `⏱️ ${ticker} → PostgreSQL → RDI → Redis...`;
+        }
+
+        function calculateRedisLatency(ticker) {
+            if (dataTimestamps[ticker]) {
+                const latency = (Date.now() - dataTimestamps[ticker]) / 1000;
+                document.getElementById('redisTimer').textContent = `✅ ${ticker} appeared in Redis after ${latency.toFixed(1)}s`;
+                delete dataTimestamps[ticker];
+                return latency;
+            }
+            return 0;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('Unified Stock Dashboard initialized', 'INFO');
+
+            // Wait a bit for DOM to be fully ready
+            setTimeout(() => {
+                initializeCharts();
+            }, 1000);
+
+            // Auto-refresh every 5 seconds for real-time monitoring
+            setInterval(() => {
+                if (isConnected && !isFetching) {
+                    refreshPostgres();
+                    refreshRedis();
+                }
+            }, 5000);
+
+            // Real-time Redis monitoring every 2 seconds
+            setInterval(() => {
+                if (isConnected) {
+                    monitorRedisRealtime();
+                }
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

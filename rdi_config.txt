@@ -2,10 +2,10 @@ targets:
   target:
     connection:
       type: redis
-      host: <your cloud instance ie: redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com>
-      port: <port>
-      user: <your-username>
-      password: <your-password>
+      host: redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com
+      port: 17173
+      user: default
+      password: redislabs
 sources:
   psql:
     type: cdc

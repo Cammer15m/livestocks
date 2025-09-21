@@ -38,6 +38,7 @@ services:
   # SQLPad for PostgreSQL queries
   sqlpad:
     image: 'sqlpad/sqlpad:6'
+    platform: linux/amd64
     container_name: rdi-sqlpad
     ports:
       - '3001:3000'
