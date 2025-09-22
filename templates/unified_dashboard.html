@@ -657,8 +657,22 @@
 
                 <div style="margin-top: 20px;">
                     <h4>📈 Redis Live Stock Prices</h4>
-                    <div style="width: 100%; height: 300px; border: 1px solid #ddd; background: white; padding: 10px;">
-                        <canvas id="redisChart" style="width: 100%; height: 100%;"></canvas>
+                    <div style="width: 100%; height: 300px; border: 1px solid #ddd; background: white; overflow-y: auto;">
+                        <table id="redisTable" style="width: 100%; border-collapse: collapse;">
+                            <thead style="position: sticky; top: 0; background: #f8f9fa; z-index: 10;">
+                                <tr style="border-bottom: 2px solid #dee2e6;">
+                                    <th style="padding: 12px; text-align: left; border-right: 1px solid #dee2e6;">Ticker</th>
+                                    <th style="padding: 12px; text-align: left; border-right: 1px solid #dee2e6;">Date</th>
+                                    <th style="padding: 12px; text-align: left; border-right: 1px solid #dee2e6;">Close</th>
+                                    <th style="padding: 12px; text-align: left;">Volume</th>
+                                </tr>
+                            </thead>
+                            <tbody id="redisTableBody">
+                                <tr>
+                                    <td colspan="4" style="padding: 20px; text-align: center; color: #6c757d;">No Redis data available</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                     <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px; text-align: center;">
                         <strong>⏱️ PostgreSQL → Redis Sync Timer:</strong>
@@ -1260,91 +1274,8 @@
 
             console.log('PostgreSQL chart created:', postgresChart);
 
-            // Redis Chart
-            const redisCanvas = document.getElementById('redisChart');
-            console.log('Redis canvas:', redisCanvas);
-
-            if (!redisCanvas) {
-                console.error('Redis canvas not found!');
-                return;
-            }
-
-            const redisCtx = redisCanvas.getContext('2d');
-            console.log('Redis context:', redisCtx);
-
-            redisChart = new Chart(redisCtx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [
-                        {
-                            label: 'AAPL',
-                            data: [],
-                            borderColor: '#3498db',
-                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                            tension: 0.4
-                        },
-                        {
-                            label: 'GOOGL',
-                            data: [],
-                            borderColor: '#e74c3c',
-                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
-                            tension: 0.4
-                        },
-                        {
-                            label: 'MSFT',
-                            data: [],
-                            borderColor: '#2ecc71',
-                            backgroundColor: 'rgba(46, 204, 113, 0.1)',
-                            tension: 0.4
-                        },
-                        {
-                            label: 'TSLA',
-                            data: [],
-                            borderColor: '#f39c12',
-                            backgroundColor: 'rgba(243, 156, 18, 0.1)',
-                            tension: 0.4
-                        },
-                        {
-                            label: 'AMZN',
-                            data: [],
-                            borderColor: '#9b59b6',
-                            backgroundColor: 'rgba(155, 89, 182, 0.1)',
-                            tension: 0.4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: false,
-                            title: {
-                                display: true,
-                                text: 'Stock Price ($)'
-                            }
-                        },
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Time'
-                            }
-                        }
-                    },
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Redis Live Stock Prices'
-                        },
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        }
-                    }
-                }
-            });
-
-            console.log('Redis chart created:', redisChart);
+            // Redis Table - no chart initialization needed
+            console.log('Redis table ready for data');
             console.log('Charts initialization complete');
         }
 
@@ -1401,54 +1332,66 @@
         }
 
         function updateRedisChart(data) {
-            if (!redisChart || !data || !data.stocks) return;
+            if (!data || !data.stocks) return;
 
             // Capture Redis update time
             redisUpdateTime = Date.now();
 
-            const now = new Date().toLocaleTimeString();
-            const chartData = redisChart.data;
-
-            // Add new time label
-            chartData.labels.push(now);
-
-            // Get latest prices for each stock from Redis
-            const stockPrices = {
-                'AAPL': 0,
-                'GOOGL': 0,
-                'MSFT': 0,
-                'TSLA': 0,
-                'AMZN': 0
-            };
-
-            // Extract latest prices from Redis data
-            data.stocks.forEach(stock => {
-                if (stock.key_type === 'latest' && stockPrices.hasOwnProperty(stock.ticker)) {
-                    stockPrices[stock.ticker] = parseFloat(stock.close) || 0;
-                }
-            });
-
-            // Update chart datasets
-            chartData.datasets.forEach((dataset, index) => {
-                const ticker = dataset.label;
-                dataset.data.push(stockPrices[ticker]);
-            });
-
-            // Keep only last 10 data points for better performance
-            if (chartData.labels.length > 10) {
-                chartData.labels.shift();
-                chartData.datasets.forEach(dataset => {
-                    dataset.data.shift();
-                });
-            }
-
-            redisChart.update('none');
+            // Update Redis table with stock data
+            updateRedisTable(data.stocks);
 
             // Update sync timing display
             updateSyncTiming(data.total_keys, data.stocks.length);
 
             // Calculate and display sync delay
             updateSyncDelay();
+        }
+
+        function updateRedisTable(stocks) {
+            const tableBody = document.getElementById('redisTableBody');
+            if (!tableBody) return;
+
+            // Clear existing rows
+            tableBody.innerHTML = '';
+
+            if (!stocks || stocks.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="4" style="padding: 20px; text-align: center; color: #6c757d;">No Redis data available</td></tr>';
+                return;
+            }
+
+            // Group stocks by ticker and get latest data
+            const stockData = {};
+            stocks.forEach(stock => {
+                if (stock.ticker && stock.close) {
+                    const ticker = stock.ticker;
+                    if (!stockData[ticker] || new Date(stock.date || stock.timestamp) > new Date(stockData[ticker].date || stockData[ticker].timestamp)) {
+                        stockData[ticker] = stock;
+                    }
+                }
+            });
+
+            // Convert to array and sort by ticker
+            const sortedStocks = Object.values(stockData).sort((a, b) => a.ticker.localeCompare(b.ticker));
+
+            // Populate table rows
+            sortedStocks.forEach(stock => {
+                const row = document.createElement('tr');
+                row.style.borderBottom = '1px solid #dee2e6';
+
+                const date = stock.date || stock.timestamp || 'N/A';
+                const formattedDate = date !== 'N/A' ? new Date(date).toLocaleDateString() : 'N/A';
+                const close = parseFloat(stock.close) || 0;
+                const volume = parseInt(stock.volume) || 0;
+
+                row.innerHTML = `
+                    <td style="padding: 8px; border-right: 1px solid #dee2e6;">${stock.ticker}</td>
+                    <td style="padding: 8px; border-right: 1px solid #dee2e6;">${formattedDate}</td>
+                    <td style="padding: 8px; border-right: 1px solid #dee2e6;">$${close.toFixed(2)}</td>
+                    <td style="padding: 8px;">${volume.toLocaleString()}</td>
+                `;
+
+                tableBody.appendChild(row);
+            });
         }
 
         function startRedisTimer(ticker) {
