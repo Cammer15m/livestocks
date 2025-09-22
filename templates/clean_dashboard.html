@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🚀 Clean Stock Dashboard - Side-by-Side Comparison</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
             margin: 0;
@@ -50,8 +51,46 @@
             border-bottom: 1px solid #dee2e6;
             display: flex;
             justify-content: center;
-            gap: 20px;
+            gap: 15px;
             flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .slider {
+            width: 80px;
+        }
+
+        .status-indicator {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .status-fetching {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-stopped {
+            background: #f8d7da;
+            color: #721c24;
         }
         
         .btn {
@@ -101,7 +140,50 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 0;
-            min-height: 600px;
+            min-height: 800px;
+        }
+
+        .chart-container {
+            padding: 20px;
+            height: 300px;
+        }
+
+        .logs-section {
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            padding: 20px;
+        }
+
+        .logs-container {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+        }
+
+        .log-timestamp {
+            color: #a0aec0;
+        }
+
+        .log-info {
+            color: #68d391;
+        }
+
+        .log-warning {
+            color: #fbb6ce;
+        }
+
+        .log-error {
+            color: #fc8181;
         }
         
         .table-section {
@@ -248,9 +330,34 @@
         </div>
         
         <div class="controls">
-            <button class="btn" onclick="refreshAll()">🔄 Refresh All</button>
-            <button class="btn" onclick="refreshPostgres()">📊 Refresh PostgreSQL</button>
-            <button class="btn" onclick="refreshRedis()">🔴 Refresh Redis</button>
+            <div class="control-group">
+                <button class="btn" onclick="refreshAll()">🔄 Refresh All</button>
+                <button class="btn" onclick="refreshPostgres()">📊 Refresh PostgreSQL</button>
+                <button class="btn" onclick="refreshRedis()">🔴 Refresh Redis</button>
+            </div>
+
+            <div class="control-group">
+                <button id="fetchBtn" class="btn" onclick="togglePolygonFetch()">📡 Start Polygon Fetch</button>
+                <span id="fetchStatus" class="status-indicator status-stopped">Stopped</span>
+            </div>
+
+            <div class="control-group">
+                <div class="slider-container">
+                    <label>Crash %:</label>
+                    <input type="range" id="crashSlider" class="slider" min="10" max="50" value="30">
+                    <span id="crashValue">30%</span>
+                </div>
+                <button class="btn" onclick="simulateCrash()" style="background: #dc3545;">💥 Crash</button>
+            </div>
+
+            <div class="control-group">
+                <div class="slider-container">
+                    <label>Surge %:</label>
+                    <input type="range" id="surgeSlider" class="slider" min="10" max="50" value="40">
+                    <span id="surgeValue">40%</span>
+                </div>
+                <button class="btn" onclick="simulateSurge()" style="background: #28a745;">🚀 Surge</button>
+            </div>
         </div>
         
         <div class="sync-timer">
@@ -299,8 +406,13 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- PostgreSQL Chart -->
+                <div class="chart-container">
+                    <canvas id="postgresChart"></canvas>
+                </div>
             </div>
-            
+
             <!-- Redis Section -->
             <div class="table-section">
                 <div class="section-header">
@@ -340,6 +452,22 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Redis Chart -->
+                <div class="chart-container">
+                    <canvas id="redisChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Activity Logs -->
+        <div class="logs-section">
+            <h3>📝 Live Activity Logs</h3>
+            <div class="logs-container" id="logsContainer">
+                <div class="log-entry">
+                    <span class="log-timestamp">[Loading...]</span>
+                    <span class="log-info">Clean Stock Dashboard initialized</span>
+                </div>
             </div>
         </div>
     </div>
@@ -347,46 +475,251 @@
     <script>
         let postgresUpdateTime = null;
         let redisUpdateTime = null;
+        let postgresChart = null;
+        let redisChart = null;
+        let isFetching = false;
+
+        // Initialize charts
+        function initCharts() {
+            const chartConfig = {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Stock Price',
+                        data: [],
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Price ($)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            };
+
+            postgresChart = new Chart(document.getElementById('postgresChart'), {
+                ...chartConfig,
+                data: {
+                    ...chartConfig.data,
+                    datasets: [{
+                        ...chartConfig.data.datasets[0],
+                        label: 'PostgreSQL Prices',
+                        borderColor: '#007bff'
+                    }]
+                }
+            });
+
+            redisChart = new Chart(document.getElementById('redisChart'), {
+                ...chartConfig,
+                data: {
+                    ...chartConfig.data,
+                    datasets: [{
+                        ...chartConfig.data.datasets[0],
+                        label: 'Redis Prices',
+                        borderColor: '#dc3545'
+                    }]
+                }
+            });
+        }
+
+        // Logging functions
+        function addLog(message, type = 'info') {
+            const container = document.getElementById('logsContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            const logClass = `log-${type.toLowerCase()}`;
+
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `
+                <span class="log-timestamp">[${timestamp}]</span>
+                <span class="${logClass}">${message}</span>
+            `;
+
+            container.appendChild(logEntry);
+            container.scrollTop = container.scrollHeight;
+
+            // Keep only last 50 log entries
+            while (container.children.length > 50) {
+                container.removeChild(container.firstChild);
+            }
+        }
+
+        // Slider controls
+        function initSliders() {
+            const crashSlider = document.getElementById('crashSlider');
+            const surgeSlider = document.getElementById('surgeSlider');
+            const crashValue = document.getElementById('crashValue');
+            const surgeValue = document.getElementById('surgeValue');
+
+            crashSlider.addEventListener('input', (e) => {
+                crashValue.textContent = e.target.value + '%';
+            });
+
+            surgeSlider.addEventListener('input', (e) => {
+                surgeValue.textContent = e.target.value + '%';
+            });
+        }
         
+        // Polygon fetch controls
+        function togglePolygonFetch() {
+            const btn = document.getElementById('fetchBtn');
+            const status = document.getElementById('fetchStatus');
+
+            if (isFetching) {
+                // Stop fetching
+                fetch('/api/stop', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            isFetching = false;
+                            btn.textContent = '📡 Start Polygon Fetch';
+                            status.textContent = 'Stopped';
+                            status.className = 'status-indicator status-stopped';
+                            addLog('🛑 Stopped Polygon data fetching', 'warning');
+                        }
+                    })
+                    .catch(error => {
+                        addLog('❌ Error stopping fetch: ' + error, 'error');
+                    });
+            } else {
+                // Start fetching
+                fetch('/api/start', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            isFetching = true;
+                            btn.textContent = '⏹️ Stop Fetching';
+                            status.textContent = 'Fetching';
+                            status.className = 'status-indicator status-fetching';
+                            addLog('🚀 Started Polygon data fetching', 'info');
+                        }
+                    })
+                    .catch(error => {
+                        addLog('❌ Error starting fetch: ' + error, 'error');
+                    });
+            }
+        }
+
+        // Crash/Surge simulation
+        function simulateCrash() {
+            const percentage = document.getElementById('crashSlider').value;
+            addLog(`💥 Simulating market crash (${percentage}% drop)...`, 'warning');
+
+            fetch('/api/crash', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ percentage: parseInt(percentage) })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addLog(`💥 Market crash applied! ${data.affected_stocks} stocks affected`, 'warning');
+                    setTimeout(() => {
+                        refreshAll();
+                        addLog('📊 Data refreshed after crash simulation', 'info');
+                    }, 1000);
+                } else {
+                    addLog('❌ Crash simulation failed: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                addLog('❌ Error simulating crash: ' + error, 'error');
+            });
+        }
+
+        function simulateSurge() {
+            const percentage = document.getElementById('surgeSlider').value;
+            addLog(`🚀 Simulating market surge (${percentage}% gain)...`, 'info');
+
+            fetch('/api/surge', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ percentage: parseInt(percentage) })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addLog(`🚀 Market surge applied! ${data.affected_stocks} stocks affected`, 'info');
+                    setTimeout(() => {
+                        refreshAll();
+                        addLog('📊 Data refreshed after surge simulation', 'info');
+                    }, 1000);
+                } else {
+                    addLog('❌ Surge simulation failed: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                addLog('❌ Error simulating surge: ' + error, 'error');
+            });
+        }
+
         function refreshAll() {
+            addLog('🔄 Refreshing all data...', 'info');
             refreshPostgres();
             setTimeout(refreshRedis, 500); // Slight delay to measure sync
         }
         
         function refreshPostgres() {
             postgresUpdateTime = Date.now();
-            
+
             fetch('/api/data/daily_aggregates')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         updatePostgresTable(data.data);
                         updatePostgresStats(data.data);
+                        updatePostgresChart(data.data);
+                        addLog(`📊 PostgreSQL: ${data.data.length} records loaded`, 'info');
                     } else {
-                        console.error('PostgreSQL fetch failed:', data.error);
+                        addLog('❌ PostgreSQL fetch failed: ' + data.error, 'error');
                     }
                 })
                 .catch(error => {
-                    console.error('PostgreSQL fetch error:', error);
+                    addLog('❌ PostgreSQL fetch error: ' + error, 'error');
                 });
         }
         
         function refreshRedis() {
             redisUpdateTime = Date.now();
-            
+
             fetch('/api/redis/stocks')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         updateRedisTable(data.stocks);
                         updateRedisStats(data);
+                        updateRedisChart(data.stocks);
                         updateSyncDelay();
+                        addLog(`🔴 Redis: ${data.stocks.length} records synced`, 'info');
                     } else {
-                        console.error('Redis fetch failed:', data.error);
+                        addLog('❌ Redis fetch failed: ' + data.error, 'error');
                     }
                 })
                 .catch(error => {
-                    console.error('Redis fetch error:', error);
+                    addLog('❌ Redis fetch error: ' + error, 'error');
                 });
         }
         
@@ -477,30 +810,93 @@
             document.getElementById('redisLatestKeys').textContent = data.latest_keys || 0;
         }
         
+        function updatePostgresChart(data) {
+            if (!postgresChart || !data || data.length === 0) return;
+
+            // Group by ticker and get latest prices
+            const tickerData = {};
+            data.forEach(row => {
+                if (!tickerData[row.ticker]) {
+                    tickerData[row.ticker] = [];
+                }
+                tickerData[row.ticker].push({
+                    date: row.date,
+                    price: parseFloat(row.close)
+                });
+            });
+
+            // Update chart with AAPL data (or first available ticker)
+            const ticker = 'AAPL';
+            if (tickerData[ticker]) {
+                const sortedData = tickerData[ticker]
+                    .sort((a, b) => new Date(a.date) - new Date(b.date))
+                    .slice(-10); // Last 10 data points
+
+                postgresChart.data.labels = sortedData.map(d =>
+                    new Date(d.date).toLocaleDateString()
+                );
+                postgresChart.data.datasets[0].data = sortedData.map(d => d.price);
+                postgresChart.update();
+            }
+        }
+
+        function updateRedisChart(stocks) {
+            if (!redisChart || !stocks || stocks.length === 0) return;
+
+            // Filter for AAPL and sort by date
+            const aaplData = stocks
+                .filter(stock => stock.ticker === 'AAPL')
+                .map(stock => ({
+                    date: stock.date || stock.timestamp,
+                    price: parseFloat(stock.close)
+                }))
+                .sort((a, b) => new Date(a.date) - new Date(b.date))
+                .slice(-10); // Last 10 data points
+
+            if (aaplData.length > 0) {
+                redisChart.data.labels = aaplData.map(d =>
+                    new Date(d.date).toLocaleDateString()
+                );
+                redisChart.data.datasets[0].data = aaplData.map(d => d.price);
+                redisChart.update();
+            }
+        }
+
         function updateSyncDelay() {
             if (postgresUpdateTime && redisUpdateTime) {
                 const delay = Math.abs(redisUpdateTime - postgresUpdateTime);
                 const delayElement = document.getElementById('syncDelay');
-                
+
                 delayElement.textContent = delay.toFixed(0) + ' ms';
-                
+
                 // Color code the delay
                 delayElement.className = 'sync-delay';
                 if (delay < 100) {
                     delayElement.classList.add('good');
+                    addLog(`⚡ Fast sync: ${delay.toFixed(0)}ms`, 'info');
                 } else if (delay < 500) {
                     delayElement.classList.add('medium');
+                    addLog(`⚠️ Medium sync delay: ${delay.toFixed(0)}ms`, 'warning');
+                } else {
+                    addLog(`🐌 Slow sync delay: ${delay.toFixed(0)}ms`, 'warning');
                 }
-                
+
                 document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
             }
         }
-        
-        // Auto-refresh every 30 seconds
-        setInterval(refreshAll, 30000);
-        
-        // Initial load
-        refreshAll();
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+            initSliders();
+            addLog('🚀 Clean Stock Dashboard initialized', 'info');
+
+            // Auto-refresh every 30 seconds
+            setInterval(refreshAll, 30000);
+
+            // Initial load
+            setTimeout(refreshAll, 1000);
+        });
     </script>
 </body>
 </html>
