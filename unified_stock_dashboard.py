@@ -449,10 +449,7 @@ def get_rdi_jobs():
                         'uses': 'redis.write',
                         'with': {
                             'connection': 'target',
-                            'key': {
-                                'expression': "concat('stock:', ticker, ':', date)",
-                                'language': 'sql'
-                            }
+                            'key': 'stock:{ticker}:{date}'
                         }
                     }
                 ]
@@ -464,32 +461,12 @@ def get_rdi_jobs():
             'config': {
                 'name': 'latest-prices',
                 'source': {'table': 'daily_aggregates'},
-                'transform': [
-                    {
-                        'uses': 'filter',
-                        'with': {
-                            'expression': 'date = (SELECT MAX(date) FROM daily_aggregates)',
-                            'language': 'sql'
-                        }
-                    },
-                    {
-                        'uses': 'add_field',
-                        'with': {
-                            'field': 'price_change',
-                            'expression': 'close - open',
-                            'language': 'sql'
-                        }
-                    }
-                ],
                 'output': [
                     {
                         'uses': 'redis.write',
                         'with': {
                             'connection': 'target',
-                            'key': {
-                                'expression': "concat('latest:', ticker)",
-                                'language': 'sql'
-                            }
+                            'key': 'latest:{ticker}'
                         }
                     }
                 ]
@@ -502,13 +479,6 @@ def get_rdi_jobs():
                 'name': 'high-volume-alerts',
                 'source': {'table': 'daily_aggregates'},
                 'transform': [
-                    {
-                        'uses': 'filter',
-                        'with': {
-                            'expression': 'volume > 100000000',
-                            'language': 'sql'
-                        }
-                    },
                     {
                         'uses': 'add_field',
                         'with': {
@@ -523,10 +493,7 @@ def get_rdi_jobs():
                         'uses': 'redis.write',
                         'with': {
                             'connection': 'target',
-                            'key': {
-                                'expression': "concat('alert:volume:', ticker, ':', date)",
-                                'language': 'sql'
-                            }
+                            'key': 'alert:volume:{ticker}:{date}'
                         }
                     }
                 ]

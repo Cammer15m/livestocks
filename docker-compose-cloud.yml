@@ -24,14 +24,14 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis Insight for monitoring cloud Redis
-  redis-insight:
-    image: redis/redisinsight:latest
-    container_name: rdi-insight
-    ports:
-      - '5540:5540'
-    volumes:
-      - redis-insight-data:/data
+  # Redis Insight for monitoring cloud Redis (commented out - using local installation)
+  # redis-insight:
+  #   image: redis/redisinsight:latest
+  #   container_name: rdi-insight
+  #   ports:
+  #     - '5540:5540'
+  #   volumes:
+  #     - redis-insight-data:/data
 
 # RDI removed - users will use shared/common RDI instance
 
