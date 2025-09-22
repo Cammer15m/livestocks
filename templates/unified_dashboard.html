@@ -1063,7 +1063,7 @@
                         });
 
                         // Update Redis chart
-                        updateRedisChart();
+                        updateRedisChart(data);
 
                         addLog(`Redis: ${data.total_keys} keys found`, 'INFO');
                     } else {
@@ -1092,7 +1092,7 @@
                         });
 
                         // Update chart with current data
-                        updateRedisChart();
+                        updateRedisChart(data);
 
                         // Update stock display if there are changes
                         updateStockDisplay(data.stocks);
@@ -1371,59 +1371,49 @@
                 });
         }
 
-        function updateRedisChart() {
-            if (!redisChart) return;
+        function updateRedisChart(data) {
+            if (!redisChart || !data || !data.stocks) return;
 
-            // Fetch Redis stock data
-            fetch('/api/redis/stocks')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.stocks.length > 0) {
-                        const now = new Date().toLocaleTimeString();
-                        const chartData = redisChart.data;
+            const now = new Date().toLocaleTimeString();
+            const chartData = redisChart.data;
 
-                        // Add new time label
-                        chartData.labels.push(now);
+            // Add new time label
+            chartData.labels.push(now);
 
-                        // Get latest prices for each stock from Redis
-                        const stockPrices = {
-                            'AAPL': 0,
-                            'GOOGL': 0,
-                            'MSFT': 0,
-                            'TSLA': 0,
-                            'AMZN': 0
-                        };
+            // Get latest prices for each stock from Redis
+            const stockPrices = {
+                'AAPL': 0,
+                'GOOGL': 0,
+                'MSFT': 0,
+                'TSLA': 0,
+                'AMZN': 0
+            };
 
-                        // Extract latest prices from Redis data
-                        data.stocks.forEach(stock => {
-                            if (stock.key_type === 'latest' && stockPrices.hasOwnProperty(stock.ticker)) {
-                                stockPrices[stock.ticker] = parseFloat(stock.close) || 0;
-                            }
-                        });
+            // Extract latest prices from Redis data
+            data.stocks.forEach(stock => {
+                if (stock.key_type === 'latest' && stockPrices.hasOwnProperty(stock.ticker)) {
+                    stockPrices[stock.ticker] = parseFloat(stock.close) || 0;
+                }
+            });
 
-                        // Update chart datasets
-                        chartData.datasets.forEach((dataset, index) => {
-                            const ticker = dataset.label;
-                            dataset.data.push(stockPrices[ticker]);
-                        });
+            // Update chart datasets
+            chartData.datasets.forEach((dataset, index) => {
+                const ticker = dataset.label;
+                dataset.data.push(stockPrices[ticker]);
+            });
 
-                        // Keep only last 10 data points for better performance
-                        if (chartData.labels.length > 10) {
-                            chartData.labels.shift();
-                            chartData.datasets.forEach(dataset => {
-                                dataset.data.shift();
-                            });
-                        }
-
-                        redisChart.update('none');
-
-                        // Update sync timing display
-                        updateSyncTiming(data.total_keys, data.stocks.length);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error updating Redis chart:', error);
+            // Keep only last 10 data points for better performance
+            if (chartData.labels.length > 10) {
+                chartData.labels.shift();
+                chartData.datasets.forEach(dataset => {
+                    dataset.data.shift();
                 });
+            }
+
+            redisChart.update('none');
+
+            // Update sync timing display
+            updateSyncTiming(data.total_keys, data.stocks.length);
         }
 
         function startRedisTimer(ticker) {
