@@ -536,8 +536,8 @@ if __name__ == '__main__':
     logger.info("Starting Unified Stock Dashboard...")
     logger.info("Access the dashboard at: http://localhost:9999")
 
-    # Start background monitoring
-    monitor_thread = threading.Thread(target=background_monitor, daemon=True)
-    monitor_thread.start()
+    # Start background monitoring - TEMPORARILY DISABLED FOR DEBUGGING
+    # monitor_thread = threading.Thread(target=background_monitor, daemon=True)
+    # monitor_thread.start()
 
     socketio.run(app, host='0.0.0.0', port=9999, debug=True)
