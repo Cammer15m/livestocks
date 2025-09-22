@@ -440,4 +440,4 @@ if __name__ == '__main__':
     monitor_thread = threading.Thread(target=background_monitor, daemon=True)
     monitor_thread.start()
     
-    socketio.run(app, host='0.0.0.0', port=5002, debug=True)
+    socketio.run(app, host='0.0.0.0', port=9998, debug=True)

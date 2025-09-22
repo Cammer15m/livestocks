@@ -351,6 +351,6 @@ if __name__ == '__main__':
     polygon_logger.addHandler(web_handler)
     
     print("Starting Polygon.io Data Fetcher Web UI...")
-    print("Access the interface at: http://localhost:5001")
+    print("Access the interface at: http://localhost:9997")
 
-    socketio.run(app, host='0.0.0.0', port=5001, debug=True)
+    socketio.run(app, host='0.0.0.0', port=9997, debug=True)

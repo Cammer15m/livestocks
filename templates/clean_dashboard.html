@@ -342,6 +342,11 @@
             </div>
 
             <div class="control-group">
+                <button id="demoBtn" class="btn" onclick="toggleDemoStock()" style="background: #17a2b8;">🎬 Start DEMO Stock</button>
+                <span id="demoStatus" class="status-indicator status-stopped">Stopped</span>
+            </div>
+
+            <div class="control-group">
                 <div class="slider-container">
                     <label>Crash %:</label>
                     <input type="range" id="crashSlider" class="slider" min="10" max="50" value="30">
@@ -467,6 +472,29 @@
                 <div class="log-entry">
                     <span class="log-timestamp">[Loading...]</span>
                     <span class="log-info">Clean Stock Dashboard initialized</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- RDI Configuration Display -->
+        <div class="logs-section">
+            <h3>⚙️ RDI Configuration</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <h4>📡 Connection Config</h4>
+                    <div class="logs-container" id="rdiConfigContainer" style="height: 300px;">
+                        <div class="log-entry">
+                            <span class="log-info">Loading RDI configuration...</span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h4>🔧 Job Definitions</h4>
+                    <div class="logs-container" id="rdiJobsContainer" style="height: 300px;">
+                        <div class="log-entry">
+                            <span class="log-info">Loading RDI jobs...</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -625,6 +653,49 @@
                     })
                     .catch(error => {
                         addLog('❌ Error starting fetch: ' + error, 'error');
+                    });
+            }
+        }
+
+        // Demo stock controls
+        let isDemoActive = false;
+        function toggleDemoStock() {
+            const btn = document.getElementById('demoBtn');
+            const status = document.getElementById('demoStatus');
+
+            if (isDemoActive) {
+                // Stop demo
+                fetch('/api/demo/stop', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            isDemoActive = false;
+                            btn.textContent = '🎬 Start DEMO Stock';
+                            btn.style.background = '#17a2b8';
+                            status.textContent = 'Stopped';
+                            status.className = 'status-indicator status-stopped';
+                            addLog('🛑 Stopped DEMO stock updates', 'warning');
+                        }
+                    })
+                    .catch(error => {
+                        addLog('❌ Error stopping DEMO stock: ' + error, 'error');
+                    });
+            } else {
+                // Start demo
+                fetch('/api/demo/start', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            isDemoActive = true;
+                            btn.textContent = '⏹️ Stop DEMO';
+                            btn.style.background = '#dc3545';
+                            status.textContent = 'Running';
+                            status.className = 'status-indicator status-fetching';
+                            addLog('🎬 Started DEMO stock continuous updates (every 3-7 seconds)', 'info');
+                        }
+                    })
+                    .catch(error => {
+                        addLog('❌ Error starting DEMO stock: ' + error, 'error');
                     });
             }
         }
@@ -831,9 +902,9 @@
                 });
             });
 
-            // Get top 5 tickers and create datasets
-            const tickers = ['AAPL', 'AMZN', 'GOOGL', 'MSFT', 'TSLA'];
-            const stockColors = ['#007bff', '#dc3545', '#28a745', '#ffc107', '#6f42c1'];
+            // Get top 6 tickers including DEMO and create datasets
+            const tickers = ['DEMO', 'AAPL', 'AMZN', 'GOOGL', 'MSFT', 'TSLA'];
+            const stockColors = ['#ff6b35', '#007bff', '#dc3545', '#28a745', '#ffc107', '#6f42c1'];
 
             // Get all unique dates and sort them
             const allDates = [...new Set(data.map(row => row.date))]
@@ -880,9 +951,9 @@
                 });
             });
 
-            // Get top 5 tickers and create datasets
-            const tickers = ['AAPL', 'AMZN', 'GOOGL', 'MSFT', 'TSLA'];
-            const stockColors = ['#007bff', '#dc3545', '#28a745', '#ffc107', '#6f42c1'];
+            // Get top 6 tickers including DEMO and create datasets
+            const tickers = ['DEMO', 'AAPL', 'AMZN', 'GOOGL', 'MSFT', 'TSLA'];
+            const stockColors = ['#ff6b35', '#007bff', '#dc3545', '#28a745', '#ffc107', '#6f42c1'];
 
             // Get all unique dates and sort them
             const allDates = [...new Set(stocks.map(stock => stock.date || stock.timestamp))]
@@ -940,11 +1011,91 @@
             }
         }
 
+        // Load RDI configuration
+        function loadRDIConfig() {
+            fetch('/api/rdi/config')
+                .then(response => response.json())
+                .then(config => {
+                    const container = document.getElementById('rdiConfigContainer');
+                    container.innerHTML = `
+                        <div class="log-entry">
+                            <span class="log-info">📡 PostgreSQL Source:</span>
+                        </div>
+                        <div class="log-entry">
+                            <span class="log-timestamp">Host:</span>
+                            <span>${config.sources.postgresql.connection.host}:${config.sources.postgresql.connection.port}</span>
+                        </div>
+                        <div class="log-entry">
+                            <span class="log-timestamp">Database:</span>
+                            <span>${config.sources.postgresql.connection.database}</span>
+                        </div>
+                        <div class="log-entry">
+                            <span class="log-timestamp">Type:</span>
+                            <span>${config.sources.postgresql.type.toUpperCase()}</span>
+                        </div>
+                        <div class="log-entry">
+                            <span class="log-info">🔴 Redis Target:</span>
+                        </div>
+                        <div class="log-entry">
+                            <span class="log-timestamp">Host:</span>
+                            <span>${config.targets.redis_cloud.connection.host}:${config.targets.redis_cloud.connection.port}</span>
+                        </div>
+                        <div class="log-entry">
+                            <span class="log-timestamp">Type:</span>
+                            <span>${config.targets.redis_cloud.connection.type.toUpperCase()}</span>
+                        </div>
+                    `;
+                })
+                .catch(error => {
+                    addLog('❌ Error loading RDI config: ' + error, 'error');
+                });
+        }
+
+        function loadRDIJobs() {
+            fetch('/api/rdi/jobs')
+                .then(response => response.json())
+                .then(jobs => {
+                    const container = document.getElementById('rdiJobsContainer');
+                    let html = '';
+
+                    Object.keys(jobs).forEach(jobKey => {
+                        const job = jobs[jobKey];
+                        html += `
+                            <div class="log-entry">
+                                <span class="log-info">📋 ${job.name}</span>
+                            </div>
+                            <div class="log-entry">
+                                <span class="log-timestamp">Source:</span>
+                                <span>${job.config.source.table}</span>
+                            </div>
+                            <div class="log-entry">
+                                <span class="log-timestamp">Transforms:</span>
+                                <span>${job.config.transform ? job.config.transform.length : 0} steps</span>
+                            </div>
+                            <div class="log-entry">
+                                <span class="log-timestamp">Output:</span>
+                                <span>Redis keys</span>
+                            </div>
+                            <div class="log-entry"><span>---</span></div>
+                        `;
+                    });
+
+                    container.innerHTML = html;
+                })
+                .catch(error => {
+                    addLog('❌ Error loading RDI jobs: ' + error, 'error');
+                });
+        }
+
         // Initialize everything when page loads
         document.addEventListener('DOMContentLoaded', function() {
             initCharts();
             initSliders();
             addLog('🚀 Clean Stock Dashboard initialized', 'info');
+
+            // Load RDI configuration
+            loadRDIConfig();
+            loadRDIJobs();
 
             // Auto-refresh every 30 seconds
             setInterval(refreshAll, 30000);

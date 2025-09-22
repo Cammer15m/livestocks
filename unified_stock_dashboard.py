@@ -24,6 +24,7 @@ from flask_socketio import SocketIO, emit
 # Import existing components
 from polygon_config import PolygonConfig
 from polygon_fetcher import PolygonDataFetcher
+import psycopg2
 import psycopg2.extras
 
 # Configure logging
@@ -60,17 +61,22 @@ redis_client = redis.Redis(
 # Global variables
 fetching_active = False
 fetching_thread = None
+demo_active = False
+demo_thread = None
 
 class UnifiedStockManager:
     def __init__(self):
-        self.tickers = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN']
+        self.tickers = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'DEMO']
         self.base_prices = {
             'AAPL': 245.50,
             'GOOGL': 254.72,
             'MSFT': 517.93,
             'TSLA': 426.07,
-            'AMZN': 231.48
+            'AMZN': 231.48,
+            'DEMO': 100.00  # Fake stock for demo
         }
+        self.demo_price = 100.00
+        self.demo_direction = 1  # 1 for up, -1 for down
     
     def fetch_polygon_data(self):
         """Fetch real data from Polygon.io"""
@@ -234,7 +240,101 @@ class UnifiedStockManager:
             # Update latest
             redis_client.hset(f"latest:{ticker}", mapping=surge_data)
 
+    def update_demo_stock(self):
+        """Update the DEMO stock with realistic price movements"""
+        # Random price change between -2% and +2%
+        change_percent = random.uniform(-0.02, 0.02)
+
+        # Occasionally make bigger moves (10% chance)
+        if random.random() < 0.1:
+            change_percent = random.uniform(-0.05, 0.05)
+
+        # Apply the change
+        self.demo_price *= (1 + change_percent)
+
+        # Keep price in reasonable range (50-200)
+        self.demo_price = max(50.0, min(200.0, self.demo_price))
+
+        # Create realistic stock data
+        demo_data = {
+            'ticker': 'DEMO',
+            'date': datetime.now().strftime('%Y-%m-%d'),
+            'time': datetime.now().strftime('%H:%M:%S'),
+            'open': self.demo_price * 0.999,  # Slightly different open
+            'high': self.demo_price * random.uniform(1.001, 1.01),
+            'low': self.demo_price * random.uniform(0.99, 0.999),
+            'close': self.demo_price,
+            'volume': random.randint(1000000, 5000000),
+            'price_change': self.demo_price - self.base_prices['DEMO'],
+            'price_change_percent': round(((self.demo_price - self.base_prices['DEMO']) / self.base_prices['DEMO']) * 100, 2),
+            'event_type': 'LIVE_DEMO',
+            'volatility': 'NORMAL'
+        }
+
+        # Insert into PostgreSQL
+        try:
+            conn = psycopg2.connect(
+                host='localhost',
+                port=5432,
+                database='chinook',
+                user='postgres',
+                password='postgres'
+            )
+            cursor = conn.cursor()
+
+            # Insert into daily_aggregates table
+            insert_query = """
+                INSERT INTO daily_aggregates (ticker, date, open, high, low, close, volume)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (ticker, date) DO UPDATE SET
+                    open = EXCLUDED.open,
+                    high = EXCLUDED.high,
+                    low = EXCLUDED.low,
+                    close = EXCLUDED.close,
+                    volume = EXCLUDED.volume
+            """
+
+            cursor.execute(insert_query, (
+                demo_data['ticker'],
+                demo_data['date'],
+                demo_data['open'],
+                demo_data['high'],
+                demo_data['low'],
+                demo_data['close'],
+                demo_data['volume']
+            ))
+
+            conn.commit()
+            cursor.close()
+            conn.close()
+
+            logger.info(f"📈 DEMO stock updated: ${self.demo_price:.2f} ({change_percent*100:+.2f}%)")
+
+        except Exception as e:
+            logger.error(f"Error updating DEMO stock in PostgreSQL: {e}")
+
+        # Also store directly in Redis for immediate visibility
+        redis_client.hset(f"latest:DEMO", mapping=demo_data)
+        redis_client.hset(f"live:demo:{datetime.now().strftime('%H%M%S')}", mapping=demo_data)
+
+        return demo_data
+
 manager = UnifiedStockManager()
+
+def demo_stock_updater():
+    """Background thread to continuously update DEMO stock"""
+    global demo_active
+    demo_active = True
+
+    logger.info("🎬 Starting DEMO stock continuous updates...")
+
+    while demo_active:
+        try:
+            manager.update_demo_stock()
+            time.sleep(random.uniform(3, 7))  # Update every 3-7 seconds
+        except Exception as e:
+            logger.error(f"Demo stock updater error: {e}")
+            time.sleep(5)
 
 @app.route('/')
 def dashboard():
@@ -421,6 +521,72 @@ def simulate_upturn():
     except Exception as e:
         logger.error(f"Error simulating surge: {e}")
         return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/demo/start', methods=['POST'])
+def start_demo_stock():
+    """Start continuous DEMO stock updates"""
+    global demo_thread, demo_active
+
+    try:
+        if demo_active:
+            return jsonify({'success': False, 'message': 'Demo stock already running'})
+
+        demo_thread = threading.Thread(target=demo_stock_updater, daemon=True)
+        demo_thread.start()
+
+        return jsonify({'success': True, 'message': 'Demo stock updates started'})
+
+    except Exception as e:
+        logger.error(f"Error starting demo stock: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/demo/stop', methods=['POST'])
+def stop_demo_stock():
+    """Stop continuous DEMO stock updates"""
+    global demo_active
+
+    try:
+        demo_active = False
+        logger.info("🛑 Stopping DEMO stock updates...")
+        return jsonify({'success': True, 'message': 'Demo stock updates stopped'})
+
+    except Exception as e:
+        logger.error(f"Error stopping demo stock: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/rdi/config')
+def get_rdi_config():
+    """Get RDI connection configuration"""
+    config = {
+        'sources': {
+            'postgresql': {
+                'type': 'cdc',
+                'connection': {
+                    'type': 'postgresql',
+                    'host': 'localhost',
+                    'port': 5432,
+                    'database': 'chinook',
+                    'user': 'postgres',
+                    'password': '***'
+                },
+                'logging': {
+                    'level': 'info'
+                }
+            }
+        },
+        'targets': {
+            'redis_cloud': {
+                'connection': {
+                    'type': 'redis',
+                    'host': 'redis-16663.crce197.us-east-2-1.ec2.redns.redis-cloud.com',
+                    'port': 16663,
+                    'username': 'default',
+                    'password': '***'
+                }
+            }
+        }
+    }
+    return jsonify(config)
 
 @app.route('/api/rdi/jobs')
 def get_rdi_jobs():
