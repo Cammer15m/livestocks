@@ -648,12 +648,7 @@
                         <div class="stat-label">Latest Keys</div>
                     </div>
                 </div>
-                <div class="stock-grid" id="stockGrid">
-                    <div class="stock-card">
-                        <div class="stock-ticker">Loading...</div>
-                        <div class="stock-price">Fetching Redis data...</div>
-                    </div>
-                </div>
+                <!-- Stock grid removed - using table format only for consistency -->
 
                 <div style="margin-top: 20px;">
                     <h4>📈 Redis Live Stock Prices</h4>
@@ -768,7 +763,7 @@
         });
 
         socket.on('stock_update', function(data) {
-            updateStockDisplay(data.stocks);
+            updateRedisTable(data.stocks);
         });
 
         // UI Functions
@@ -854,53 +849,7 @@
             }
         }
 
-        function updateStockDisplay(stocks) {
-            const stockGrid = document.getElementById('stockGrid');
-            
-            if (!stocks || stocks.length === 0) {
-                stockGrid.innerHTML = '<div class="stock-card"><div class="stock-ticker">No data</div><div class="stock-price">No Redis data available</div></div>';
-                return;
-            }
-
-            // Group by ticker and get latest
-            const latestStocks = {};
-            stocks.forEach(stock => {
-                if (stock.ticker && (!latestStocks[stock.ticker] || stock.key_type === 'latest' || stock.event_type)) {
-                    latestStocks[stock.ticker] = stock;
-                }
-            });
-
-            // Limit to 5 stocks to match PostgreSQL table
-            const stocksToShow = Object.values(latestStocks).slice(0, 5);
-
-            stockGrid.innerHTML = stocksToShow.map(stock => {
-                const price = parseFloat(stock.close || 0);
-                const change = parseFloat(stock.price_change || 0);
-                const changePercent = parseFloat(stock.price_change_percent || 0);
-                const volume = parseInt(stock.volume || 0);
-                
-                let cardClass = 'stock-card';
-                if (stock.event_type === 'CRASH') cardClass += ' crash';
-                if (stock.event_type === 'SURGE') cardClass += ' surge';
-                
-                const changeClass = change >= 0 ? 'positive' : 'negative';
-                const changeSymbol = change >= 0 ? '+' : '';
-                
-                return `
-                    <div class="${cardClass}">
-                        <div class="stock-ticker">${stock.ticker}</div>
-                        <div class="stock-price">$${price.toFixed(2)}</div>
-                        <div class="stock-change ${changeClass}">
-                            ${changeSymbol}$${change.toFixed(2)} (${changeSymbol}${changePercent.toFixed(2)}%)
-                        </div>
-                        <div style="font-size: 0.8em; color: #7f8c8d; margin-top: 5px;">
-                            Vol: ${volume.toLocaleString()}
-                            ${stock.event_type ? `<br><strong>${stock.event_type}</strong>` : ''}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
+        // updateStockDisplay function removed - using table format only for consistency
 
         function updatePostgresTable(data) {
             const tbody = document.getElementById('postgresTableBody');
@@ -1090,7 +1039,7 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        updateStockDisplay(data.stocks);
+                        updateRedisTable(data.stocks);
 
                         // Update Redis stats
                         document.getElementById('totalKeys').textContent = data.total_keys || 0;
@@ -1138,7 +1087,7 @@
                         updateRedisChart(data);
 
                         // Update stock display if there are changes
-                        updateStockDisplay(data.stocks);
+                        updateRedisTable(data.stocks);
                     }
                 })
                 .catch(error => {
@@ -1383,8 +1332,24 @@
                 const close = parseFloat(stock.close) || 0;
                 const volume = parseInt(stock.volume) || 0;
 
+                // Detect crash/surge indicators
+                let statusIndicator = '';
+                let rowStyle = '';
+                if (stock.price_change_percent) {
+                    const changePercent = parseFloat(stock.price_change_percent);
+                    if (changePercent > 20) {
+                        statusIndicator = ' <span style="background: #28a745; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.8em;">SURGE</span>';
+                        rowStyle = 'background-color: #d4edda;';
+                    } else if (changePercent < -20) {
+                        statusIndicator = ' <span style="background: #dc3545; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.8em;">CRASH</span>';
+                        rowStyle = 'background-color: #f8d7da;';
+                    }
+                }
+
+                row.style.cssText = `border-bottom: 1px solid #dee2e6; ${rowStyle}`;
+
                 row.innerHTML = `
-                    <td style="padding: 8px; border-right: 1px solid #dee2e6;">${stock.ticker}</td>
+                    <td style="padding: 8px; border-right: 1px solid #dee2e6;">${stock.ticker}${statusIndicator}</td>
                     <td style="padding: 8px; border-right: 1px solid #dee2e6;">${formattedDate}</td>
                     <td style="padding: 8px; border-right: 1px solid #dee2e6;">$${close.toFixed(2)}</td>
                     <td style="padding: 8px;">${volume.toLocaleString()}</td>
