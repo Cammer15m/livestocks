@@ -370,7 +370,27 @@
         tr:hover {
             background: #f8f9fa;
         }
-        
+
+        .table-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .table-container table {
+            margin-top: 0;
+        }
+
+        .table-container thead th {
+            position: sticky;
+            top: 0;
+            background: #f8f9fa;
+            z-index: 10;
+            box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+        }
+
         .refresh-btn {
             background: #17a2b8;
             color: white;
@@ -586,21 +606,23 @@
                         <div class="stat-label">Success Rate</div>
                     </div>
                 </div>
-                <table id="postgresTable">
-                    <thead>
-                        <tr>
-                            <th>Ticker</th>
-                            <th>Date</th>
-                            <th>Close</th>
-                            <th>Volume</th>
-                        </tr>
-                    </thead>
-                    <tbody id="postgresTableBody">
-                        <tr>
-                            <td colspan="4" class="no-data">No data available</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="table-container">
+                    <table id="postgresTable">
+                        <thead>
+                            <tr>
+                                <th>Ticker</th>
+                                <th>Date</th>
+                                <th>Close</th>
+                                <th>Volume</th>
+                            </tr>
+                        </thead>
+                        <tbody id="postgresTableBody">
+                            <tr>
+                                <td colspan="4" class="no-data">No data available</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
                 <div style="margin-top: 20px;">
                     <h4>📈 Top 5 Stocks Price Chart</h4>
@@ -1029,7 +1051,7 @@
                 });
 
             // Get data
-            fetch('/api/data/daily_aggregates?limit=5')
+            fetch('/api/data/daily_aggregates?limit=20')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
@@ -1323,7 +1345,7 @@
             if (!postgresChart) return;
 
             // Fetch current stock data
-            fetch('/api/data/daily_aggregates?limit=5')
+            fetch('/api/data/daily_aggregates?limit=20')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.data.length > 0) {
