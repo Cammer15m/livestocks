@@ -481,18 +481,15 @@
 
         // Initialize charts
         function initCharts() {
+            const stockColors = [
+                '#007bff', '#dc3545', '#28a745', '#ffc107', '#6f42c1'
+            ];
+
             const chartConfig = {
                 type: 'line',
                 data: {
                     labels: [],
-                    datasets: [{
-                        label: 'Stock Price',
-                        data: [],
-                        borderColor: '#007bff',
-                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
+                    datasets: []
                 },
                 options: {
                     responsive: true,
@@ -508,13 +505,18 @@
                         x: {
                             title: {
                                 display: true,
-                                text: 'Time'
+                                text: 'Date'
                             }
                         }
                     },
                     plugins: {
                         legend: {
-                            display: false
+                            display: true,
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Top 5 Stocks Real-Time Prices'
                         }
                     }
                 }
@@ -522,25 +524,29 @@
 
             postgresChart = new Chart(document.getElementById('postgresChart'), {
                 ...chartConfig,
-                data: {
-                    ...chartConfig.data,
-                    datasets: [{
-                        ...chartConfig.data.datasets[0],
-                        label: 'PostgreSQL Prices',
-                        borderColor: '#007bff'
-                    }]
+                options: {
+                    ...chartConfig.options,
+                    plugins: {
+                        ...chartConfig.options.plugins,
+                        title: {
+                            display: true,
+                            text: 'PostgreSQL - Top 5 Stocks'
+                        }
+                    }
                 }
             });
 
             redisChart = new Chart(document.getElementById('redisChart'), {
                 ...chartConfig,
-                data: {
-                    ...chartConfig.data,
-                    datasets: [{
-                        ...chartConfig.data.datasets[0],
-                        label: 'Redis Prices',
-                        borderColor: '#dc3545'
-                    }]
+                options: {
+                    ...chartConfig.options,
+                    plugins: {
+                        ...chartConfig.options.plugins,
+                        title: {
+                            display: true,
+                            text: 'Redis - Top 5 Stocks'
+                        }
+                    }
                 }
             });
         }
@@ -626,17 +632,17 @@
         // Crash/Surge simulation
         function simulateCrash() {
             const percentage = document.getElementById('crashSlider').value;
-            addLog(`💥 Simulating market crash (${percentage}% drop)...`, 'warning');
+            addLog(`💥 Simulating market crash (up to ${percentage}% drop per stock)...`, 'warning');
 
-            fetch('/api/crash', {
+            fetch('/api/simulate/crash', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ percentage: parseInt(percentage) })
+                body: JSON.stringify({ intensity: parseInt(percentage) / 100 })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    addLog(`💥 Market crash applied! ${data.affected_stocks} stocks affected`, 'warning');
+                    addLog(`💥 Market crash applied! Each stock dropped by different amounts`, 'warning');
                     setTimeout(() => {
                         refreshAll();
                         addLog('📊 Data refreshed after crash simulation', 'info');
@@ -652,17 +658,17 @@
 
         function simulateSurge() {
             const percentage = document.getElementById('surgeSlider').value;
-            addLog(`🚀 Simulating market surge (${percentage}% gain)...`, 'info');
+            addLog(`🚀 Simulating market surge (up to ${percentage}% gain per stock)...`, 'info');
 
-            fetch('/api/surge', {
+            fetch('/api/simulate/upturn', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ percentage: parseInt(percentage) })
+                body: JSON.stringify({ intensity: parseInt(percentage) / 100 })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    addLog(`🚀 Market surge applied! ${data.affected_stocks} stocks affected`, 'info');
+                    addLog(`🚀 Market surge applied! Each stock gained by different amounts`, 'info');
                     setTimeout(() => {
                         refreshAll();
                         addLog('📊 Data refreshed after surge simulation', 'info');
@@ -825,41 +831,90 @@
                 });
             });
 
-            // Update chart with AAPL data (or first available ticker)
-            const ticker = 'AAPL';
-            if (tickerData[ticker]) {
-                const sortedData = tickerData[ticker]
-                    .sort((a, b) => new Date(a.date) - new Date(b.date))
-                    .slice(-10); // Last 10 data points
+            // Get top 5 tickers and create datasets
+            const tickers = ['AAPL', 'AMZN', 'GOOGL', 'MSFT', 'TSLA'];
+            const stockColors = ['#007bff', '#dc3545', '#28a745', '#ffc107', '#6f42c1'];
 
-                postgresChart.data.labels = sortedData.map(d =>
-                    new Date(d.date).toLocaleDateString()
-                );
-                postgresChart.data.datasets[0].data = sortedData.map(d => d.price);
-                postgresChart.update();
-            }
+            // Get all unique dates and sort them
+            const allDates = [...new Set(data.map(row => row.date))]
+                .sort((a, b) => new Date(a) - new Date(b))
+                .slice(-10); // Last 10 dates
+
+            postgresChart.data.labels = allDates.map(date =>
+                new Date(date).toLocaleDateString()
+            );
+
+            // Create datasets for each ticker
+            postgresChart.data.datasets = tickers.map((ticker, index) => {
+                const tickerPrices = allDates.map(date => {
+                    const dayData = tickerData[ticker]?.find(d => d.date === date);
+                    return dayData ? dayData.price : null;
+                });
+
+                return {
+                    label: ticker,
+                    data: tickerPrices,
+                    borderColor: stockColors[index],
+                    backgroundColor: stockColors[index] + '20',
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: 3
+                };
+            });
+
+            postgresChart.update();
         }
 
         function updateRedisChart(stocks) {
             if (!redisChart || !stocks || stocks.length === 0) return;
 
-            // Filter for AAPL and sort by date
-            const aaplData = stocks
-                .filter(stock => stock.ticker === 'AAPL')
-                .map(stock => ({
+            // Group by ticker and get latest prices
+            const tickerData = {};
+            stocks.forEach(stock => {
+                if (!tickerData[stock.ticker]) {
+                    tickerData[stock.ticker] = [];
+                }
+                tickerData[stock.ticker].push({
                     date: stock.date || stock.timestamp,
                     price: parseFloat(stock.close)
-                }))
-                .sort((a, b) => new Date(a.date) - new Date(b.date))
-                .slice(-10); // Last 10 data points
+                });
+            });
 
-            if (aaplData.length > 0) {
-                redisChart.data.labels = aaplData.map(d =>
-                    new Date(d.date).toLocaleDateString()
-                );
-                redisChart.data.datasets[0].data = aaplData.map(d => d.price);
-                redisChart.update();
-            }
+            // Get top 5 tickers and create datasets
+            const tickers = ['AAPL', 'AMZN', 'GOOGL', 'MSFT', 'TSLA'];
+            const stockColors = ['#007bff', '#dc3545', '#28a745', '#ffc107', '#6f42c1'];
+
+            // Get all unique dates and sort them
+            const allDates = [...new Set(stocks.map(stock => stock.date || stock.timestamp))]
+                .filter(date => date && date !== 'N/A')
+                .sort((a, b) => new Date(a) - new Date(b))
+                .slice(-10); // Last 10 dates
+
+            if (allDates.length === 0) return;
+
+            redisChart.data.labels = allDates.map(date =>
+                new Date(date).toLocaleDateString()
+            );
+
+            // Create datasets for each ticker
+            redisChart.data.datasets = tickers.map((ticker, index) => {
+                const tickerPrices = allDates.map(date => {
+                    const dayData = tickerData[ticker]?.find(d => (d.date || d.timestamp) === date);
+                    return dayData ? dayData.price : null;
+                });
+
+                return {
+                    label: ticker,
+                    data: tickerPrices,
+                    borderColor: stockColors[index],
+                    backgroundColor: stockColors[index] + '20',
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: 3
+                };
+            });
+
+            redisChart.update();
         }
 
         function updateSyncDelay() {
