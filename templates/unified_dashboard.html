@@ -625,7 +625,7 @@
                 </div>
 
                 <div style="margin-top: 20px;">
-                    <h4>📈 Top 5 Stocks Price Chart</h4>
+                    <h4>📈 PostgreSQL Stock Prices</h4>
                     <div style="width: 100%; height: 300px; border: 1px solid #ddd; background: white; padding: 10px;">
                         <canvas id="postgresChart" style="width: 100%; height: 100%;"></canvas>
                     </div>
@@ -656,13 +656,15 @@
                 </div>
 
                 <div style="margin-top: 20px;">
-                    <h4>📈 Redis Data Flow & Timing</h4>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                        <span id="redisTimer">⏱️ Waiting for data...</span>
-                        <span id="redisLatency">Latency: --</span>
-                    </div>
-                    <div style="width: 100%; height: 250px; border: 1px solid #ddd; background: white; padding: 10px;">
+                    <h4>📈 Redis Live Stock Prices</h4>
+                    <div style="width: 100%; height: 300px; border: 1px solid #ddd; background: white; padding: 10px;">
                         <canvas id="redisChart" style="width: 100%; height: 100%;"></canvas>
+                    </div>
+                    <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px; text-align: center;">
+                        <strong>⏱️ PostgreSQL → Redis Sync Timer:</strong>
+                        <span id="syncTimer" style="color: #28a745; font-weight: bold;">-- ms</span>
+                        <span style="margin-left: 20px;">Last Update:</span>
+                        <span id="lastUpdateTime" style="color: #007bff;">--</span>
                     </div>
                 </div>
             </div>
@@ -699,6 +701,9 @@
         let redisChart = null;
         let dataTimestamps = {};
         let redisUpdateTimer = null;
+        let postgresUpdateTime = null;
+        let redisUpdateTime = null;
+        let syncDelayHistory = [];
 
         // Socket event handlers
         socket.on('connect', function() {
@@ -1055,6 +1060,8 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
+                        // Capture PostgreSQL update time
+                        postgresUpdateTime = Date.now();
                         updatePostgresTable(data.data);
                         addLog(`✅ PostgreSQL table updated with ${data.data.length} records`, 'INFO');
                     }
@@ -1396,6 +1403,9 @@
         function updateRedisChart(data) {
             if (!redisChart || !data || !data.stocks) return;
 
+            // Capture Redis update time
+            redisUpdateTime = Date.now();
+
             const now = new Date().toLocaleTimeString();
             const chartData = redisChart.data;
 
@@ -1436,6 +1446,9 @@
 
             // Update sync timing display
             updateSyncTiming(data.total_keys, data.stocks.length);
+
+            // Calculate and display sync delay
+            updateSyncDelay();
         }
 
         function startRedisTimer(ticker) {
@@ -1464,6 +1477,88 @@
             document.getElementById('syncDuration').textContent = `${syncDuration}ms`;
             document.getElementById('recordsSynced').textContent = stockCount;
             document.getElementById('avgLatency').textContent = '0.00s';
+        }
+
+        function updateSyncDelay() {
+            if (postgresUpdateTime && redisUpdateTime) {
+                const delay = Math.abs(redisUpdateTime - postgresUpdateTime);
+                syncDelayHistory.push(delay);
+
+                // Keep only last 10 measurements for average
+                if (syncDelayHistory.length > 10) {
+                    syncDelayHistory.shift();
+                }
+
+                // Update the sync timer display
+                const syncTimerElement = document.getElementById('syncTimer');
+                const lastUpdateElement = document.getElementById('lastUpdateTime');
+
+                if (syncTimerElement) {
+                    if (delay < 100) {
+                        syncTimerElement.textContent = `${delay.toFixed(1)} ms`;
+                        syncTimerElement.style.color = '#28a745'; // Green for fast
+                    } else if (delay < 500) {
+                        syncTimerElement.textContent = `${delay.toFixed(1)} ms`;
+                        syncTimerElement.style.color = '#ffc107'; // Yellow for medium
+                    } else {
+                        syncTimerElement.textContent = `${delay.toFixed(1)} ms`;
+                        syncTimerElement.style.color = '#dc3545'; // Red for slow
+                    }
+                }
+
+                if (lastUpdateElement) {
+                    lastUpdateElement.textContent = new Date().toLocaleTimeString();
+                }
+
+                // Add to logs if delay is significant
+                if (delay > 200) {
+                    addLog(`⚠️ Sync delay: ${delay.toFixed(1)}ms (PostgreSQL → Redis)`, 'WARNING');
+                } else if (delay < 50) {
+                    addLog(`⚡ Fast sync: ${delay.toFixed(1)}ms (PostgreSQL → Redis)`, 'INFO');
+                }
+            }
+        }
+
+        function updateSyncDelay() {
+            if (postgresUpdateTime && redisUpdateTime) {
+                const delay = Math.abs(redisUpdateTime - postgresUpdateTime);
+                syncDelayHistory.push(delay);
+
+                // Keep only last 10 measurements for average
+                if (syncDelayHistory.length > 10) {
+                    syncDelayHistory.shift();
+                }
+
+                const avgDelay = syncDelayHistory.reduce((a, b) => a + b, 0) / syncDelayHistory.length;
+
+                // Update the sync timer display
+                const syncTimerElement = document.getElementById('syncTimer');
+                const lastUpdateElement = document.getElementById('lastUpdateTime');
+
+                if (syncTimerElement) {
+                    if (delay < 100) {
+                        syncTimerElement.textContent = `${delay.toFixed(1)} ms`;
+                        syncTimerElement.style.color = '#28a745'; // Green for fast
+                    } else if (delay < 500) {
+                        syncTimerElement.textContent = `${delay.toFixed(1)} ms`;
+                        syncTimerElement.style.color = '#ffc107'; // Yellow for medium
+                    } else {
+                        syncTimerElement.textContent = `${delay.toFixed(1)} ms`;
+                        syncTimerElement.style.color = '#dc3545'; // Red for slow
+                    }
+                }
+
+                if (lastUpdateElement) {
+                    lastUpdateElement.textContent = new Date().toLocaleTimeString();
+                }
+
+                // Add to logs if delay is significant
+                if (delay > 200) {
+                    addLog(`⚠️ Sync delay: ${delay.toFixed(1)}ms (PostgreSQL → Redis)`, 'WARNING');
+                } else if (delay < 50) {
+                    addLog(`⚡ Fast sync: ${delay.toFixed(1)}ms (PostgreSQL → Redis)`, 'INFO');
+                }
+            }
         }
 
         // Initialize
