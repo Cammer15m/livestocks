@@ -419,27 +419,26 @@
         
         function updateRedisTable(stocks) {
             const tbody = document.getElementById('redisTableBody');
-            
+
             if (!stocks || stocks.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="4" class="no-data">No Redis data available</td></tr>';
                 return;
             }
-            
-            // Group by ticker and get latest
-            const latestStocks = {};
-            stocks.forEach(stock => {
-                if (stock.ticker && stock.close) {
-                    const ticker = stock.ticker;
-                    if (!latestStocks[ticker] || 
-                        new Date(stock.date || stock.timestamp) > new Date(latestStocks[ticker].date || latestStocks[ticker].timestamp)) {
-                        latestStocks[ticker] = stock;
-                    }
-                }
-            });
-            
-            const sortedStocks = Object.values(latestStocks)
-                .sort((a, b) => a.ticker.localeCompare(b.ticker))
-                .slice(0, 20);
+
+            // Sort all stocks by ticker and date (newest first) to match PostgreSQL format
+            const sortedStocks = stocks
+                .filter(stock => stock.ticker && stock.close)
+                .sort((a, b) => {
+                    // First sort by ticker
+                    const tickerCompare = a.ticker.localeCompare(b.ticker);
+                    if (tickerCompare !== 0) return tickerCompare;
+
+                    // Then by date (newest first)
+                    const dateA = new Date(a.date || a.timestamp);
+                    const dateB = new Date(b.date || b.timestamp);
+                    return dateB - dateA;
+                })
+                .slice(0, 20); // Show same number as PostgreSQL
             
             tbody.innerHTML = sortedStocks.map(stock => {
                 const date = stock.date ? new Date(stock.date).toLocaleDateString() : 'N/A';
