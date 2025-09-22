@@ -11,7 +11,11 @@ Features:
 
 import os
 import json
-import redis
+try:
+    import redis
+    REDIS_AVAILABLE = True
+except ImportError:
+    REDIS_AVAILABLE = False
 import random
 import time
 import threading
@@ -50,10 +54,10 @@ fetcher = PolygonDataFetcher()
 
 # Redis connection
 redis_client = redis.Redis(
-    host='redis-17173.c14.us-east-1-2.ec2.redns.redis-cloud.com',
-    port=17173,
+    host='redis-16663.crce197.us-east-2-1.ec2.redns.redis-cloud.com',
+    port=16663,
     username='default',
-    password='redislabs',
+    password='zcINj4yL0jOCbQGj0GiERr1jBjZyKVxo',
     decode_responses=True
 )
 
@@ -533,10 +537,10 @@ def background_monitor():
 
 if __name__ == '__main__':
     logger.info("Starting Unified Stock Dashboard...")
-    logger.info("Access the dashboard at: http://localhost:5001")
-    
+    logger.info("Access the dashboard at: http://localhost:9999")
+
     # Start background monitoring
     monitor_thread = threading.Thread(target=background_monitor, daemon=True)
     monitor_thread.start()
-    
-    socketio.run(app, host='0.0.0.0', port=5001, debug=True)
+
+    socketio.run(app, host='0.0.0.0', port=9999, debug=True)
