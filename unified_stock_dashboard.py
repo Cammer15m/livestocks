@@ -11,11 +11,7 @@ Features:
 
 import os
 import json
-try:
-    import redis
-    REDIS_AVAILABLE = True
-except ImportError:
-    REDIS_AVAILABLE = False
+import redis
 import random
 import time
 import threading
@@ -354,12 +350,13 @@ def get_redis_stocks():
         stocks = []
         
         # Get all stock keys
-        stock_keys = redis_client.keys('stock:*')
+        ticker_keys = redis_client.keys('AAPL') + redis_client.keys('GOOGL') + redis_client.keys('MSFT') + redis_client.keys('TSLA') + redis_client.keys('AMZN')
+        stock_ticker_keys = redis_client.keys('stock_tickers:ticker:*')
         latest_keys = redis_client.keys('latest:*')
         crash_keys = redis_client.keys('live:crash:*')
         surge_keys = redis_client.keys('live:surge:*')
-        
-        all_keys = stock_keys + latest_keys + crash_keys + surge_keys
+
+        all_keys = ticker_keys + stock_ticker_keys + latest_keys + crash_keys + surge_keys
         
         for key in all_keys:
             data = redis_client.hgetall(key)
@@ -372,7 +369,7 @@ def get_redis_stocks():
             'success': True,
             'stocks': stocks,
             'total_keys': len(all_keys),
-            'stock_keys': len(stock_keys),
+            'stock_keys': len(ticker_keys + stock_ticker_keys),
             'latest_keys': len(latest_keys),
             'crash_keys': len(crash_keys),
             'surge_keys': len(surge_keys)
