@@ -240,6 +240,11 @@ manager = UnifiedStockManager()
 def dashboard():
     return render_template('unified_dashboard.html')
 
+@app.route('/clean')
+def clean_dashboard():
+    """Clean side-by-side dashboard"""
+    return render_template('clean_dashboard.html')
+
 @app.route('/api/start', methods=['POST'])
 def start_fetching():
     """Start Polygon data fetching"""

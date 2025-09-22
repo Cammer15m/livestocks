@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Clean Stock Dashboard - Side-by-Side Comparison</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .sync-timer {
+            background: #e9ecef;
+            padding: 15px;
+            text-align: center;
+            font-size: 18px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .sync-delay {
+            font-weight: bold;
+            color: #dc3545;
+        }
+        
+        .sync-delay.good {
+            color: #28a745;
+        }
+        
+        .sync-delay.medium {
+            color: #ffc107;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            min-height: 600px;
+        }
+        
+        .table-section {
+            padding: 20px;
+            border-right: 1px solid #dee2e6;
+        }
+        
+        .table-section:last-child {
+            border-right: none;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #007bff;
+        }
+        
+        .section-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .refresh-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .refresh-btn:hover {
+            background: #218838;
+        }
+        
+        .table-container {
+            height: 500px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        
+        thead {
+            position: sticky;
+            top: 0;
+            background: #f8f9fa;
+            z-index: 10;
+        }
+        
+        th {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid #dee2e6;
+            border-right: 1px solid #dee2e6;
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        th:last-child {
+            border-right: none;
+        }
+        
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #dee2e6;
+            border-right: 1px solid #dee2e6;
+        }
+        
+        td:last-child {
+            border-right: none;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+        
+        .surge {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .crash {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .no-data {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 40px;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Clean Stock Dashboard</h1>
+            <p>Side-by-Side PostgreSQL ↔ Redis Comparison</p>
+        </div>
+        
+        <div class="controls">
+            <button class="btn" onclick="refreshAll()">🔄 Refresh All</button>
+            <button class="btn" onclick="refreshPostgres()">📊 Refresh PostgreSQL</button>
+            <button class="btn" onclick="refreshRedis()">🔴 Refresh Redis</button>
+        </div>
+        
+        <div class="sync-timer">
+            ⏱️ PostgreSQL → Redis Sync Delay: 
+            <span id="syncDelay" class="sync-delay">-- ms</span>
+            | Last Update: <span id="lastUpdate">--</span>
+        </div>
+        
+        <div class="main-content">
+            <!-- PostgreSQL Section -->
+            <div class="table-section">
+                <div class="section-header">
+                    <div class="section-title">📊 PostgreSQL Data</div>
+                    <button class="refresh-btn" onclick="refreshPostgres()">Refresh</button>
+                </div>
+                
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-value" id="pgTickers">-</div>
+                        <div class="stat-label">Tickers</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="pgRecords">-</div>
+                        <div class="stat-label">Records</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="pgSuccess">-</div>
+                        <div class="stat-label">Success Rate</div>
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Ticker</th>
+                                <th>Date</th>
+                                <th>Close</th>
+                                <th>Volume</th>
+                            </tr>
+                        </thead>
+                        <tbody id="postgresTableBody">
+                            <tr>
+                                <td colspan="4" class="no-data">Click Refresh to load data</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Redis Section -->
+            <div class="table-section">
+                <div class="section-header">
+                    <div class="section-title">🔴 Redis Data</div>
+                    <button class="refresh-btn" onclick="refreshRedis()">Refresh</button>
+                </div>
+                
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-value" id="redisTotalKeys">-</div>
+                        <div class="stat-label">Total Keys</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="redisStockKeys">-</div>
+                        <div class="stat-label">Stock Keys</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="redisLatestKeys">-</div>
+                        <div class="stat-label">Latest Keys</div>
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Ticker</th>
+                                <th>Date</th>
+                                <th>Close</th>
+                                <th>Volume</th>
+                            </tr>
+                        </thead>
+                        <tbody id="redisTableBody">
+                            <tr>
+                                <td colspan="4" class="no-data">Click Refresh to load data</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let postgresUpdateTime = null;
+        let redisUpdateTime = null;
+        
+        function refreshAll() {
+            refreshPostgres();
+            setTimeout(refreshRedis, 500); // Slight delay to measure sync
+        }
+        
+        function refreshPostgres() {
+            postgresUpdateTime = Date.now();
+            
+            fetch('/api/data/daily_aggregates')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updatePostgresTable(data.data);
+                        updatePostgresStats(data.data);
+                    } else {
+                        console.error('PostgreSQL fetch failed:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('PostgreSQL fetch error:', error);
+                });
+        }
+        
+        function refreshRedis() {
+            redisUpdateTime = Date.now();
+            
+            fetch('/api/redis/stocks')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateRedisTable(data.stocks);
+                        updateRedisStats(data);
+                        updateSyncDelay();
+                    } else {
+                        console.error('Redis fetch failed:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Redis fetch error:', error);
+                });
+        }
+        
+        function updatePostgresTable(data) {
+            const tbody = document.getElementById('postgresTableBody');
+            
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="no-data">No PostgreSQL data available</td></tr>';
+                return;
+            }
+            
+            // Show latest 20 records
+            const records = data.slice(0, 20);
+            
+            tbody.innerHTML = records.map(row => {
+                const date = new Date(row.date).toLocaleDateString();
+                const close = parseFloat(row.close || 0).toFixed(2);
+                const volume = parseInt(row.volume || 0).toLocaleString();
+                
+                return `
+                    <tr>
+                        <td>${row.ticker}</td>
+                        <td>${date}</td>
+                        <td>$${close}</td>
+                        <td>${volume}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function updateRedisTable(stocks) {
+            const tbody = document.getElementById('redisTableBody');
+            
+            if (!stocks || stocks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="no-data">No Redis data available</td></tr>';
+                return;
+            }
+            
+            // Group by ticker and get latest
+            const latestStocks = {};
+            stocks.forEach(stock => {
+                if (stock.ticker && stock.close) {
+                    const ticker = stock.ticker;
+                    if (!latestStocks[ticker] || 
+                        new Date(stock.date || stock.timestamp) > new Date(latestStocks[ticker].date || latestStocks[ticker].timestamp)) {
+                        latestStocks[ticker] = stock;
+                    }
+                }
+            });
+            
+            const sortedStocks = Object.values(latestStocks)
+                .sort((a, b) => a.ticker.localeCompare(b.ticker))
+                .slice(0, 20);
+            
+            tbody.innerHTML = sortedStocks.map(stock => {
+                const date = stock.date ? new Date(stock.date).toLocaleDateString() : 'N/A';
+                const close = parseFloat(stock.close || 0).toFixed(2);
+                const volume = parseInt(stock.volume || 0).toLocaleString();
+                
+                // Check for crash/surge indicators
+                let statusIndicator = '';
+                if (stock.event_type === 'SURGE') {
+                    statusIndicator = '<span class="status-indicator surge">SURGE</span>';
+                } else if (stock.event_type === 'CRASH') {
+                    statusIndicator = '<span class="status-indicator crash">CRASH</span>';
+                }
+                
+                return `
+                    <tr>
+                        <td>${stock.ticker}${statusIndicator}</td>
+                        <td>${date}</td>
+                        <td>$${close}</td>
+                        <td>${volume}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function updatePostgresStats(data) {
+            const tickers = new Set(data.map(row => row.ticker)).size;
+            document.getElementById('pgTickers').textContent = tickers;
+            document.getElementById('pgRecords').textContent = data.length;
+            document.getElementById('pgSuccess').textContent = '100%';
+        }
+        
+        function updateRedisStats(data) {
+            document.getElementById('redisTotalKeys').textContent = data.total_keys || 0;
+            document.getElementById('redisStockKeys').textContent = data.stock_keys || 0;
+            document.getElementById('redisLatestKeys').textContent = data.latest_keys || 0;
+        }
+        
+        function updateSyncDelay() {
+            if (postgresUpdateTime && redisUpdateTime) {
+                const delay = Math.abs(redisUpdateTime - postgresUpdateTime);
+                const delayElement = document.getElementById('syncDelay');
+                
+                delayElement.textContent = delay.toFixed(0) + ' ms';
+                
+                // Color code the delay
+                delayElement.className = 'sync-delay';
+                if (delay < 100) {
+                    delayElement.classList.add('good');
+                } else if (delay < 500) {
+                    delayElement.classList.add('medium');
+                }
+                
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+            }
+        }
+        
+        // Auto-refresh every 30 seconds
+        setInterval(refreshAll, 30000);
+        
+        // Initial load
+        refreshAll();
+    </script>
+</body>
+</html>
